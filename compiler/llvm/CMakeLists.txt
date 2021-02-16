@@ -9,25 +9,6 @@ elseif(OS STREQUAL "windows")
   set(WINDOWS YES)
 endif()
 
-if (WINDOWS)
-  # set(CMAKE_CROSSCOMPILING TRUE) 
-  set(CMAKE_SYSTEM_NAME Windows)
-
-  #should be passed from build.sh, just here to prevent warning
-  set(CMAKE_RC_COMPILER "/usr/bin/x86_64-w64-mingw32-windres")
-  
-  #these are not actually used by robovm but find_package does not always resolve them, use JAVA_HOME env var to prevent paths?
-  set(JAVA_AWT_LIBRARY "/usr/lib/jvm/java-7-openjdk-amd64/jre/lib/amd64/libawt.so")
-  set(JAVA_JVM_LIBRARY "/usr/lib/jvm/java-7-openjdk-amd64/jre/lib/amd64/server/libjvm.so")
-
-  # adjust the default behaviour of the FIND_XXX() commands:
-  # search headers and libraries in the target environment, search
-  # programs in the host environment
-  set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
-  set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
-  set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
-endif()
-
 project(robovm-llvm)
 
 find_package(JNI REQUIRED)
@@ -39,22 +20,21 @@ if (ARCH STREQUAL "x86")
   set(X86 YES)
 elseif (ARCH STREQUAL "x86_64")
   set(X86_64 YES)
+elseif (ARCH STREQUAL "arm64")
+  set(ARM64 YES)
 endif()
 
 set(C_CXX_FLAGS "${C_CXX_FLAGS} -fvisibility=hidden -fdata-sections -ffunction-sections")
 if(MACOSX AND X86_64)
   set(C_CXX_FLAGS "${C_CXX_FLAGS} -arch x86_64 -mmacosx-version-min=10.12")
   set(LD_FLAGS "${LD_FLAGS} -arch x86_64 -mmacosx-version-min=10.12")
+elseif(MACOSX AND ARM64)
+  set(C_CXX_FLAGS "${C_CXX_FLAGS} -arch arm64 -mmacosx-version-min=11.0")
+  set(LD_FLAGS "${LD_FLAGS} -arch arm64 -mmacosx-version-min=11.0")
 elseif(LINUX AND X86)
   set(C_CXX_FLAGS "${C_CXX_FLAGS} -m32")
   set(LD_FLAGS "${LD_FLAGS} -m64")
 elseif(LINUX AND X86_64)
-  set(C_CXX_FLAGS "${C_CXX_FLAGS} -m64")
-  set(LD_FLAGS "${LD_FLAGS} -m64")
-elseif(WINDOWS AND X86)
-  set(C_CXX_FLAGS "${C_CXX_FLAGS} -m32")
-  set(LD_FLAGS "${LD_FLAGS} -m32")
-elseif(WINDOWS AND X86_64)
   set(C_CXX_FLAGS "${C_CXX_FLAGS} -m64")
   set(LD_FLAGS "${LD_FLAGS} -m64")
 endif()
@@ -142,11 +122,6 @@ if(LINUX)
     -L"${CMAKE_BINARY_DIR}/llvm/lib"
     -lrt -ldl -lpthread -lz
   )
-elseif(WINDOWS)
-  set(LLVM_LDFLAGS
-    -L"${CMAKE_BINARY_DIR}/llvm/lib"
-    -ldbghelp -static-libgcc -static-libstdc++
-  )
 elseif(MACOSX)
   set(LLVM_LDFLAGS
     -L"${CMAKE_BINARY_DIR}/llvm/lib"
@@ -170,8 +145,4 @@ elseif(MACOSX)
   set_target_properties(robovm-llvm PROPERTIES LINK_FLAGS "-Wl,-dead_strip -Wl,-exported_symbols_list -Wl,${CMAKE_SOURCE_DIR}/src/main/native/exports_macosx.sym")
 endif()
 set(INSTALL_DIR ${CMAKE_SOURCE_DIR}/src/main/resources/org/robovm/llvm/binding/${OS}/${ARCH})
-if(WINDOWS)
-  install(TARGETS robovm-llvm RUNTIME DESTINATION ${INSTALL_DIR})
-else()
-  install(TARGETS robovm-llvm LIBRARY DESTINATION ${INSTALL_DIR})
-endif()
+install(TARGETS robovm-llvm LIBRARY DESTINATION ${INSTALL_DIR})

@@ -11,7 +11,13 @@ function usage {
 Usage: $SELF [options]
 Options:
   --clean                 Cleans the build dir before starting the build.
-  --windows               Cross compile for windows.
+  --target=...            Specifies the target(s) to build for. Supported
+                          targets are macosx-x86_64, macosx-arm64, linux-x86_64,
+                          linux-x86. Enclose multiple targets in quotes and
+                          separate with spaces or specify --target multiple
+                          times. If not set the current host OS determines the
+                          targets. macosx-x86_64, macosx-arm64 on MacOSX and
+                          linux-x86_64 and linux-x86 on Linux.
   --help                  Displays this information and exits.
 EOF
   exit $1
@@ -21,7 +27,7 @@ while [ "${1:0:2}" = '--' ]; do
   NAME=${1%%=*}
   VALUE=${1#*=}
   case $NAME in
-    '--windows') WIN=1 ;;
+    '--target') TARGETS="$TARGETS $VALUE" ;;
     '--clean') CLEAN=1 ;;
     '--help')
       usage 0
@@ -34,27 +40,29 @@ while [ "${1:0:2}" = '--' ]; do
   shift
 done
 
-if [ "$WIN" = '1' ]; then
-  OS="Windows"
-else
-  OS=$(uname)
+OS=$(uname)
+if [ "x$TARGETS" = 'x' ]; then
+  case $OS in
+  Darwin)
+    TARGETS="macosx-x86_64 macosx-arm64"
+    ;;
+  Linux)
+    TARGETS="linux-x86_64 linux-x86"
+    ;;
+  *)
+    echo "Unsupported OS: $OS"
+    exit 1
+    ;;
+  esac
 fi
 
-case $OS in
-Darwin)
-  TARGETS="macosx-x86_64"
-  ;;
-Linux)
-  TARGETS="linux-x86_64 linux-x86"
-  ;;
-Windows)
-  TARGETS="windows-x86_64" # windows-x86"
-  ;;
-*)
-  echo "Unsupported OS: $OS"
-  exit 1
-  ;;
-esac
+# Validate targets
+for T in $TARGETS; do
+  if ! [[ $T =~ (macosx-(x86_64|arm64))|(linux-(x86_64|x86)) ]] ; then
+    echo "Unsupported target: $T"
+    exit 1
+  fi
+done
 
 mkdir -p "$BASE/target.llvm/build"
 if [ "$CLEAN" = '1' ]; then
@@ -62,6 +70,7 @@ if [ "$CLEAN" = '1' ]; then
     rm -rf "$BASE/target.llvm/build/$T"
   done
 fi
+
 
 case $OS in
 Darwin)
@@ -79,11 +88,6 @@ Darwin)
 Linux)
   CC=$(which gcc)
   CXX=$(which g++)
-  ;;
-Windows)
-  CC=$(which x86_64-w64-mingw32-gcc)
-  CXX=$(which x86_64-w64-mingw32-g++)
-  WORKERS=1
   ;;
 *)
   echo "Unsupported OS: $OS"
