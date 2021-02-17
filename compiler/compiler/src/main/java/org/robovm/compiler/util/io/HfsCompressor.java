@@ -37,7 +37,17 @@ public class HfsCompressor {
     
     private static void loadLib(Config config) {
         if(!isLoaded) {
-            String hfscompressorLib = new File(config.getHome().getBinDir(), "libhfscompressor.dylib").getAbsolutePath();
+            String archProp = System.getProperty("os.arch").toLowerCase();
+            String arch;
+            if (archProp.matches("amd64|x86[-_]64")) {
+                arch = "x86_64";
+            } else if (archProp.matches("aarch64|arm64")) {
+                arch = "arm64";
+            } else {
+                throw new Error("Unsupported arch: " + archProp);
+            }
+            String hfscompressorLib = new File(config.getHome().getBinDir(), "libhfscompressor-" +
+                    arch +".dylib").getAbsolutePath();
             System.load(hfscompressorLib);
             isLoaded = true;
         }
