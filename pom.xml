@@ -69,6 +69,12 @@
                                 <goals>
                                     <goal>sign</goal>
                                 </goals>
+                                <configuration>
+                                    <gpgArguments>
+                                        <arg>--pinentry-mode</arg>
+                                        <arg>loopback</arg>
+                                    </gpgArguments>
+                                </configuration>
                             </execution>
                         </executions>
                     </plugin>
@@ -313,14 +319,14 @@
     </repositories>
     <distributionManagement>
         <snapshotRepository>
-            <id>sonatype-nexus-snapshots</id>
-            <name>Sonatype Nexus Snapshots</name>
-            <url>${sonatypeOssDistMgmtSnapshotsUrl}</url>
+            <id>repsy</id>
+            <name>Repsy MVN for hotfixes</name>
+            <url>https://repo.repsy.io/mvn/dkimitsa/alt</url>
         </snapshotRepository>
         <repository>
-            <id>sonatype-nexus-staging</id>
-            <name>Nexus Release Repository</name>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
+            <id>repsy</id>
+            <name>Repsy MVN for hotfixes</name>
+            <url>https://repo.repsy.io/mvn/dkimitsa/alt</url>
         </repository>
     </distributionManagement>
     <!-- end of: entries from sonatype oss-parent-->
