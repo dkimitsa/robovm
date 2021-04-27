@@ -24,7 +24,7 @@ compileJava {
 }
 
 ext {
-    roboVMVersion = '2.3.12.1'
+    roboVMVersion = '2.3.12.2'
 }
 
 repositories {
@@ -51,7 +51,7 @@ publishing {
         mavenJava(MavenPublication) {
             groupId = 'com.mobidevelop.robovm'
             artifactId = 'robovm-gradle-plugin'
-            version = '2.3.12.1'
+            version = '2.3.12.2'
             from components.java
 
             pom {
