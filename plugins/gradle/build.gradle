@@ -11,14 +11,10 @@ buildscript {
 
 apply plugin: 'java'
 apply plugin: 'groovy'
-apply plugin: 'maven'
-apply plugin: 'nexus'
-apply plugin: 'eclipse'
+apply plugin: 'maven-publish'
+apply plugin: 'signing'
 apply plugin: 'com.github.johnrengelman.shadow'
 
-group = 'com.mobidevelop.robovm'
-archivesBaseName = 'robovm-gradle-plugin'
-version = '2.3.14.2-SNAPSHOT'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -29,8 +25,6 @@ compileJava {
 
 ext {
     roboVMVersion = '2.3.14.2-SNAPSHOT'
-    nexusUsername = System.getenv('MAVEN_USERNAME')
-    nexusPassword = System.getenv('MAVEN_PASSWORD')
 }
 
 repositories {
@@ -52,49 +46,66 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.11'
 }
 
-modifyPom {
-    project {
-        name 'RoboVM Gradle Plugin'
-        packaging 'jar'
-        description 'The RoboVM Gradle Plugin provides a way to build RoboVM apps using Gradle.'
-        url 'https://github.com/mobidevelop/robovm/'
-        inceptionYear '2013'
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            groupId = 'com.mobidevelop.robovm'
+            artifactId = 'robovm-gradle-plugin'
+            version = "${roboVMVersion}"
+            from components.java
 
-        scm {
-            url 'https://github.com/mobidevelop/robovm.git'
-            connection 'scm:git:git://github.com/mobidevelop/robovm.git'
-            developerConnection 'scm:git:git@github.com:mobidevelop/robovm.git'
-        }
+            pom {
+                name = 'RoboVM Gradle Plugin'
+                packaging = 'jar'
+                description = 'The RoboVM Gradle Plugin provides a way to build RoboVM apps using Gradle.'
+                url = 'https://github.com/mobidevelop/robovm/'
+                inceptionYear = '2013'
 
-        licenses {
-            license {
-                name 'The Apache Software License, Version 2.0'
-                url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-                distribution 'repo'
+                scm {
+                    url = 'https://github.com/mobidevelop/robovm.git'
+                    connection = 'scm:git:git://github.com/mobidevelop/robovm.git'
+                    developerConnection = 'scm:git:git@github.com:mobidevelop/robovm.git'
+                }
+
+                licenses {
+                    license {
+                        name = 'The Apache Software License, Version 2.0'
+                        url = 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+                        distribution = 'repo'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = 'jtakakura'
+                        name = 'Junji Takakura'
+                    }
+                    developer {
+                        id = 'ntherning'
+                        name = 'Niklas Therning'
+                    }
+                }
             }
         }
-
-        developers {
-            developer {
-                id 'jtakakura'
-                name 'Junji Takakura'
-            }
-            developer {
-                id 'ntherning'
-                name 'Niklas Therning'
-            }
+    }
+    repositories {
+        maven {
+            // TODO: FIXME: provide proper release/snapshot repositories
+            url = 'file:///Users/dkimitsa/projects/git/depo_m1_2.3.14.2'
+//            credentials {
+//                username = 'dkimitsa'
+//                password = ''
+//            }
         }
     }
 }
 
+//signing {
+//    sign publishing.publications.mavenJava
+//}
+
 task wrapper(type: Wrapper) {
     gradleVersion = '4.10.1'
-}
-
-// apply from: 'local.gradle'
-
-jar {
-    enabled = false
 }
 
 shadowJar {
@@ -108,4 +119,5 @@ shadowJar {
 }
 
 assemble.dependsOn('shadowJar')
-install.dependsOn('shadowJar')
+publish.dependsOn('shadowJar')
+publishToMavenLocal.dependsOn('shadowJar')

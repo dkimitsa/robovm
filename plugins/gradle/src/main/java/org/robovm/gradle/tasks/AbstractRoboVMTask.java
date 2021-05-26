@@ -27,6 +27,8 @@ import org.apache.maven.wagon.providers.http.HttpWagon;
 import org.gradle.api.DefaultTask;
 import org.gradle.api.GradleException;
 import org.gradle.api.Project;
+import org.gradle.api.artifacts.repositories.ArtifactRepository;
+import org.gradle.api.artifacts.repositories.MavenArtifactRepository;
 import org.gradle.api.plugins.JavaPlugin;
 import org.gradle.api.tasks.TaskAction;
 import org.robovm.compiler.AppCompiler;
@@ -363,8 +365,30 @@ abstract public class AbstractRoboVMTask extends DefaultTask {
         repositories.add(new RemoteRepository("maven-central", "default", "https://repo1.maven.org/maven2/"));
         repositories.add(new RemoteRepository("oss.sonatype.org-snapshots", "default",
                 "https://oss.sonatype.org/content/repositories/snapshots/"));
+        // add "robovm-mirror" repository if its configured in build script
+        MavenArtifactRepository roboVMMirror = findRoboVMMirror();
+        if (roboVMMirror != null)
+            repositories.add(new RemoteRepository(roboVMMirror.getName(), "default", roboVMMirror.getUrl().toString()));
 
         return repositories;
+    }
+
+    // looks for robovm-mirror repository, and if specified use it as well as source for resolving
+    // compiler dependencies
+    private MavenArtifactRepository findRoboVMMirror() {
+        Project proj = project;
+        while (proj != null) {
+            try {
+                ArtifactRepository roboVMMirror = proj.getBuildscript().getRepositories().getByName("robovm-mirror");
+                if (roboVMMirror instanceof MavenArtifactRepository) {
+                    return (MavenArtifactRepository) roboVMMirror;
+                }
+            } catch (Throwable ignored) {
+            }
+
+            proj = proj.getParent();
+        }
+        return null;
     }
 
     private void extractTarGz(File archive, File destDir) throws IOException {
