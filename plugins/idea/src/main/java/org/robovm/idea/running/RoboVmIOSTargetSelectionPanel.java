@@ -18,7 +18,6 @@ package org.robovm.idea.running;
 
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.options.ConfigurationException;
-import com.intellij.openapi.options.SettingsEditor;
 import org.jetbrains.annotations.NotNull;
 import org.robovm.compiler.config.Arch;
 import org.robovm.compiler.config.Config;
@@ -48,7 +47,6 @@ public class RoboVmIOSTargetSelectionPanel {
 
 
     private JPanel panel;
-    private JTabbedPane tabbedPane1;
     private JComboBox<ModuleNameDecorator> module;
     private JRadioButton attachedDeviceRadioButton;
     private JRadioButton simulatorRadioButton;
@@ -57,8 +55,8 @@ public class RoboVmIOSTargetSelectionPanel {
     private JComboBox<ProvisioningProfileDecorator> provisioningProfile;
     private JComboBox<CpuArch> simArch;
     private JComboBox<CpuArch> deviceArch;
-    private JTextArea args;
-    private RoboVmIOSSimulatorSelector roboVmIOSSimulatorSelector1;
+    private RoboVmIOSSimulatorSelector selectorSelector;
+    private RoboVmIOSDeviceSelector deviceSelector;
     private JCheckBox pairedWatch;
 
     // copy of data that is time consuming to fetch (fetched only once when dialog is created)
