@@ -105,7 +105,7 @@ public class RoboVmIOSFrameworkRunConfigurationSettingsEditor extends SettingsEd
             module.setSelectedItem(getModuleFromConfig(config));
             simType.setSelectedItem(getSimulatorFromConfig(config));
             simArch.setSelectedItem(populateSimulatorArch((SimTypeDecorator) simType.getSelectedItem(), config.getSimulatorArch()));
-            updatePairedWatch(true, config.simulatorLaunchWatch());
+            updatePairedWatch(true, config.isSimulatorLaunchWatch());
 
             deviceArch.setSelectedItem(config.getDeviceArch());
             signingIdentity.setSelectedItem(getSigningIdentityFromConfig(config));

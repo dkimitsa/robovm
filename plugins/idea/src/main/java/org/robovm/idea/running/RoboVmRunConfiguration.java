@@ -17,13 +17,7 @@
 package org.robovm.idea.running;
 
 import com.intellij.execution.Executor;
-import com.intellij.execution.configurations.ConfigurationFactory;
-import com.intellij.execution.configurations.ConfigurationType;
-import com.intellij.execution.configurations.ModuleBasedConfiguration;
-import com.intellij.execution.configurations.RunConfiguration;
-import com.intellij.execution.configurations.RunConfigurationWithSuppressedDefaultDebugAction;
-import com.intellij.execution.configurations.RunProfileState;
-import com.intellij.execution.configurations.RunProfileWithCompileBeforeLaunchOption;
+import com.intellij.execution.configurations.*;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.execution.runners.RunConfigurationWithSuppressedDefaultRunAction;
 import com.intellij.openapi.module.Module;
@@ -35,18 +29,19 @@ import org.jdom.Element;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.robovm.compiler.AppCompiler;
-import org.robovm.compiler.config.Arch;
 import org.robovm.compiler.config.Config;
-import org.robovm.compiler.config.CpuArch;
-import org.robovm.compiler.target.ios.DeviceType;
 import org.robovm.idea.RoboVmPlugin;
+import org.robovm.idea.running.config.RoboVmRunDevicePickerConfig;
+import org.robovm.idea.running.config.RoboVmRunSimulatorPickerConfig;
 
 import java.util.Collection;
 import java.util.List;
 
-public class RoboVmRunConfiguration extends ModuleBasedConfiguration<RoboVmRunConfigurationSettings, Element> implements RunConfigurationWithSuppressedDefaultDebugAction, RunConfigurationWithSuppressedDefaultRunAction, RunProfileWithCompileBeforeLaunchOption {
-    public static final String AUTO_SIGNING_IDENTITY_LEGACY = "Auto (matches 'iPhone Developer|iOS Development')";
-    public static final String AUTO_SIGNING_IDENTITY = "Auto (matches 'iPhone Developer|iOS Development|Apple Development')";
+public class RoboVmRunConfiguration extends ModuleBasedConfiguration<RunConfigurationModule, Element> implements
+        RunConfigurationWithSuppressedDefaultDebugAction, RunConfigurationWithSuppressedDefaultRunAction,
+        RunProfileWithCompileBeforeLaunchOption,
+        RoboVmRunSimulatorPickerConfig, RoboVmRunDevicePickerConfig
+{
     public static final String AUTO_PROVISIONING_PROFILE = "Auto";
 
     public enum TargetType {
@@ -64,16 +59,20 @@ public class RoboVmRunConfiguration extends ModuleBasedConfiguration<RoboVmRunCo
     }
 
     private TargetType targetType;
-    private CpuArch deviceArch;
-    private EntryType signingIdentityType;
-    private String signingIdentity;
-    private EntryType provisioningProfileType;
-    private String provisioningProfile;
-    private CpuArch simulatorArch;
-    private EntryType simulatorType;
-    private String simulator;
-    private int simulatorSdk;
-    private boolean simulatorLaunchWatch;
+    private final RoboVmRunDevicePickerConfig.Bucket devicePickerConfigBucket = new RoboVmRunDevicePickerConfig.Bucket();
+    private final RoboVmRunSimulatorPickerConfig.Bucket simulatorPickerConfigBucket = new RoboVmRunSimulatorPickerConfig.Bucket();
+
+    @Override
+    public RoboVmRunDevicePickerConfig.Bucket devicePickerBucket() {
+        return devicePickerConfigBucket;
+    }
+
+    @Override
+    public RoboVmRunSimulatorPickerConfig.Bucket simulatorPickerBucket() {
+        return simulatorPickerConfigBucket;
+    }
+
+
     private String arguments;
     private String workingDir;
 
@@ -87,7 +86,7 @@ public class RoboVmRunConfiguration extends ModuleBasedConfiguration<RoboVmRunCo
     private ConfigurationType type;
     private List<String> programArguments;
 
-    public RoboVmRunConfiguration(ConfigurationType type, String name, RoboVmRunConfigurationSettings configurationModule, ConfigurationFactory factory) {
+    public RoboVmRunConfiguration(ConfigurationType type, String name, RunConfigurationModule configurationModule, ConfigurationFactory factory) {
         super(name, configurationModule, factory);
         this.type = type;
         this.setDefaultValues();
@@ -96,15 +95,11 @@ public class RoboVmRunConfiguration extends ModuleBasedConfiguration<RoboVmRunCo
     private void setDefaultValues() {
         if (type instanceof RoboVmIOSConfigurationType) {
             targetType = TargetType.Device;
-            deviceArch = CpuArch.arm64;
-            signingIdentityType = EntryType.AUTO;
-            provisioningProfileType = EntryType.AUTO;
-            simulatorType = EntryType.AUTO;
-            simulatorArch = DeviceType.DEFAULT_HOST_ARCH;
-            simulatorLaunchWatch = false;
+
+            setDefaultDevicePickerValues();
+            setDefaultSimulatorPickerValues();
         } else if (type instanceof RoboVmConsoleConfigurationType) {
             targetType = TargetType.Console;
-            deviceArch = DeviceType.DEFAULT_HOST_ARCH;
         }
     }
 
@@ -134,19 +129,11 @@ public class RoboVmRunConfiguration extends ModuleBasedConfiguration<RoboVmRunCo
         super.readExternal(element);
 
         targetType = valueOf(TargetType.class, JDOMExternalizerUtil.readField(element, "targetType"));
-        deviceArch = valueOf(CpuArch.class, JDOMExternalizerUtil.readField(element, "deviceArch"));
-        signingIdentityType = valueOf(EntryType.class, JDOMExternalizerUtil.readField(element, "signingIdentityType"));
-        signingIdentity = JDOMExternalizerUtil.readField(element, "signingIdentity");
-        provisioningProfileType = valueOf(EntryType.class, JDOMExternalizerUtil.readField(element, "provisioningProfileType"));
-        provisioningProfile = JDOMExternalizerUtil.readField(element, "provisioningProfile");
-        simulatorType = valueOf(EntryType.class, JDOMExternalizerUtil.readField(element, "simulatorType"));
-        simulator = JDOMExternalizerUtil.readField(element, "simulatorName");
-        simulatorArch = valueOf(CpuArch.class, JDOMExternalizerUtil.readField(element, "simArch"));
-        simulatorSdk = parseInt(JDOMExternalizerUtil.readField(element, "simulatorSdk"), -1);
-        simulatorLaunchWatch = parseInt(JDOMExternalizerUtil.readField(element, "simulatorLaunchPair"), -1)  > 0;
         arguments = JDOMExternalizerUtil.readField(element, "arguments", "");
         workingDir = JDOMExternalizerUtil.readField(element, "workingDir", "");
 
+        readDevicePickerExternal(element);
+        readSimulatorPickerExternal(element);
         validateAndFix();
     }
 
@@ -155,98 +142,10 @@ public class RoboVmRunConfiguration extends ModuleBasedConfiguration<RoboVmRunCo
         super.writeExternal(element);
 
         JDOMExternalizerUtil.writeField(element, "targetType", toStringOrNull(targetType));
-        JDOMExternalizerUtil.writeField(element, "deviceArch", toStringOrNull(deviceArch));
-        JDOMExternalizerUtil.writeField(element, "signingIdentityType", toStringOrNull(signingIdentityType));
-        JDOMExternalizerUtil.writeField(element, "signingIdentity", signingIdentity);
-        JDOMExternalizerUtil.writeField(element, "provisioningProfileType", toStringOrNull(provisioningProfileType));
-        JDOMExternalizerUtil.writeField(element, "provisioningProfile", provisioningProfile);
-        JDOMExternalizerUtil.writeField(element, "simArch", toStringOrNull(simulatorArch));
-        JDOMExternalizerUtil.writeField(element, "simulatorType", toStringOrNull(simulatorType));
-        JDOMExternalizerUtil.writeField(element, "simulatorName", simulator);
-        JDOMExternalizerUtil.writeField(element, "simulatorSdk", Integer.toString(simulatorSdk));
-        JDOMExternalizerUtil.writeField(element, "simulatorLaunchWatch", simulatorLaunchWatch ? "1" : "0");
         JDOMExternalizerUtil.writeField(element, "arguments", arguments);
         JDOMExternalizerUtil.writeField(element, "workingDir", workingDir);
-    }
-
-    public void setDeviceArch(CpuArch deviceArch) {
-        this.deviceArch = deviceArch;
-    }
-
-    public CpuArch getDeviceArch() {
-        return deviceArch;
-    }
-
-    public EntryType getSigningIdentityType() {
-        return signingIdentityType;
-    }
-
-    public void setSigningIdentityType(EntryType signingIdentityType) {
-        this.signingIdentityType = signingIdentityType;
-    }
-
-    public void setSigningIdentity(String signingIdentity) {
-        this.signingIdentity = signingIdentity;
-    }
-
-    public String getSigningIdentity() {
-        return signingIdentity;
-    }
-
-    public EntryType getProvisioningProfileType() {
-        return provisioningProfileType;
-    }
-
-    public void setProvisioningProfileType(EntryType provisioningProfileType) {
-        this.provisioningProfileType = provisioningProfileType;
-    }
-
-    public void setProvisioningProfile(String provisioningProfile) {
-        this.provisioningProfile = provisioningProfile;
-    }
-
-    public String getProvisioningProfile() {
-        return provisioningProfile;
-    }
-
-    public void setSimulatorArch(CpuArch simulatorArch) {
-        this.simulatorArch = simulatorArch;
-    }
-
-    public CpuArch getSimulatorArch() {
-        return simulatorArch;
-    }
-
-    public EntryType getSimulatorType() {
-        return simulatorType;
-    }
-
-    public void setSimulatorType(EntryType simulatorType) {
-        this.simulatorType = simulatorType;
-    }
-
-    public void setSimulator(String simulator) {
-        this.simulator = simulator;
-    }
-
-    public String getSimulator() {
-        return simulator;
-    }
-
-    public int getSimulatorSdk() {
-        return simulatorSdk;
-    }
-
-    public void setSimulatorSdk(int simulatorSdk) {
-        this.simulatorSdk = simulatorSdk;
-    }
-
-    public boolean simulatorLaunchWatch() {
-        return simulatorLaunchWatch;
-    }
-
-    public void setSimulatorLaunchWatch(boolean simulatorLaunchWatch) {
-        this.simulatorLaunchWatch = simulatorLaunchWatch;
+        writeDevicePickerExternal(element);
+        writeSimulatorPickerExternal(element);
     }
 
     public String getModuleName() {
@@ -325,40 +224,14 @@ public class RoboVmRunConfiguration extends ModuleBasedConfiguration<RoboVmRunCo
             if (targetType != TargetType.Device && targetType != TargetType.Simulator)
                 targetType = TargetType.Device;
 
-            if (simulatorType == EntryType.AUTO || simulatorType == EntryType.AUTO2)
-                simulatorArch = DeviceType.DEFAULT_HOST_ARCH;
-
-            // migrate simulator to new code if legacy found
-            if (AUTO_SIGNING_IDENTITY_LEGACY.equals(simulator))
-                simulator = AUTO_SIGNING_IDENTITY;
+            validateAndFixDevicePicker();
+            validateAndFixSimulatorPicker();
         } else if (type instanceof RoboVmConsoleConfigurationType) {
             // MacOsX console target
-            if (deviceArch != CpuArch.x86_64 && deviceArch != DeviceType.DEFAULT_HOST_ARCH)
-                deviceArch = DeviceType.DEFAULT_HOST_ARCH;
+// FIXME: !
+//            if (deviceArch != CpuArch.x86_64 && deviceArch != DeviceType.DEFAULT_HOST_ARCH)
+//                deviceArch = DeviceType.DEFAULT_HOST_ARCH;
             targetType = TargetType.Console;
         }
-    }
-
-    //
-    // Helpers
-    //
-    private <T extends Enum<T>> T valueOf(Class<T> enumType, String name) {
-        try {
-            return name != null ? Enum.valueOf(enumType, name) : null;
-        } catch (IllegalArgumentException ignored){
-            return null;
-        }
-    }
-
-    private int parseInt(String value, int defaultValue) {
-        try {
-            return value != null ? Integer.parseInt(value) : defaultValue;
-        } catch (NumberFormatException ignored) {
-            return defaultValue;
-        }
-    }
-
-    private String toStringOrNull(Object v) {
-        return v != null ? v.toString() : null;
     }
 }

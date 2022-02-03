@@ -16,10 +16,7 @@
  */
 package org.robovm.idea.running;
 
-import com.intellij.execution.configurations.ConfigurationFactory;
-import com.intellij.execution.configurations.ConfigurationType;
-import com.intellij.execution.configurations.RunConfiguration;
-import com.intellij.execution.configurations.RunConfigurationSingletonPolicy;
+import com.intellij.execution.configurations.*;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NonNls;
 import org.jetbrains.annotations.NotNull;
@@ -32,7 +29,7 @@ public class RoboVmConfigurationFactory extends ConfigurationFactory {
     @NotNull
     @Override
     public RunConfiguration createTemplateConfiguration(@NotNull Project project) {
-        return new RoboVmRunConfiguration(getType(), "RoboVM Run Configuration", new RoboVmRunConfigurationSettings(project), this);
+        return new RoboVmRunConfiguration(getType(), "RoboVM Run Configuration", new RunConfigurationModule(project), this);
     }
 
     @NotNull

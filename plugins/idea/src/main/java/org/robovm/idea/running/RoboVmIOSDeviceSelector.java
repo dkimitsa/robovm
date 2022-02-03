@@ -23,6 +23,7 @@ import org.robovm.compiler.config.CpuArch;
 import org.robovm.compiler.target.ios.ProvisioningProfile;
 import org.robovm.compiler.target.ios.SigningIdentity;
 import org.robovm.idea.running.RoboVmRunConfiguration.EntryType;
+import org.robovm.idea.running.config.RoboVmRunDevicePickerConfig;
 
 import javax.swing.*;
 import java.util.List;
@@ -56,7 +57,7 @@ public class RoboVmIOSDeviceSelector extends BaseDecoratorAware {
     }
 
 
-    public void applyDataFrom(@NotNull RoboVmRunConfiguration config) {
+    public void applyDataFrom(@NotNull RoboVmRunDevicePickerConfig config) {
         try {
             updatingData = true;
             deviceArch.setSelectedItem(config.getDeviceArch());
@@ -67,7 +68,7 @@ public class RoboVmIOSDeviceSelector extends BaseDecoratorAware {
         }
     }
 
-    protected void saveDataTo(@NotNull RoboVmRunConfiguration config) throws ConfigurationException {
+    protected void saveDataTo(@NotNull RoboVmRunDevicePickerConfig config) throws ConfigurationException {
         // validate all data
         if (deviceArch.getSelectedItem() == null)
             throw buildConfigurationException("Device architecture is not specified!", () -> deviceArch.setSelectedItem(Arch.arm64));
@@ -110,7 +111,7 @@ public class RoboVmIOSDeviceSelector extends BaseDecoratorAware {
         this.provisioningProfiles.forEach(t -> provisioningProfile.addItem(t));
     }
 
-    private SigningIdentityDecorator getSigningIdentityFromConfig(RoboVmRunConfiguration config) {
+    private SigningIdentityDecorator getSigningIdentityFromConfig(RoboVmRunDevicePickerConfig config) {
         String name = config.getSigningIdentity();
         return getMatchingDecorator(config.getSigningIdentityType(), name,
                 (SigningIdentityDecorator) signingIdentity.getSelectedItem(),
@@ -118,7 +119,7 @@ public class RoboVmIOSDeviceSelector extends BaseDecoratorAware {
                 signingIdentities, t -> Decorator.matchesName(t, name));
     }
 
-    private ProvisioningProfileDecorator getProvisioningProfileFromConfig(RoboVmRunConfiguration config) {
+    private ProvisioningProfileDecorator getProvisioningProfileFromConfig(RoboVmRunDevicePickerConfig config) {
         String name = config.getProvisioningProfile();
         return getMatchingDecorator(config.getProvisioningProfileType(), name,
                 (ProvisioningProfileDecorator) provisioningProfile.getSelectedItem(),
