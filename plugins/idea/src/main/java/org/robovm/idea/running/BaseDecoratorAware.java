@@ -26,7 +26,7 @@ import java.util.function.Predicate;
 /**
  * Contains base code related to picking values from the list
  */
-public class BaseDecoratorAware {
+interface BaseDecoratorAware {
 
     /**
      * Universal entry point for getting decorator by name or id
@@ -40,7 +40,7 @@ public class BaseDecoratorAware {
      * @param byNamePredicate  predicate to find item by name
      * @return matching decorator
      */
-    protected <T extends Decorator<?>> T getMatchingDecorator(EntryType entryType, String value, T selectedItem,
+    default <T extends Decorator<?>> T getMatchingDecorator(EntryType entryType, String value, T selectedItem,
                                                               String autoKey, T auto1, T auto2,
                                                               List<T> values, Predicate<T> byNamePredicate) {
         if (entryType != null) {
@@ -55,7 +55,7 @@ public class BaseDecoratorAware {
     /**
      * version for case when entry type is known
      */
-    private <T extends Decorator<?>> T getMatchingDecorator(EntryType entryType, String id, T selectedItem, T auto1, T auto2, List<T> values) {
+    default <T extends Decorator<?>> T getMatchingDecorator(EntryType entryType, String id, T selectedItem, T auto1, T auto2, List<T> values) {
         T result = null;
         switch (entryType) {
             case ID:
@@ -80,7 +80,7 @@ public class BaseDecoratorAware {
     /**
      * version for legacy case, matching by name only
      */
-    private <T extends Decorator<?>> T getMatchingDecorator(String name, T selectedItem, String autoKey, T auto, List<T> values, Predicate<T> byNamePredicate) {
+    default <T extends Decorator<?>> T getMatchingDecorator(String name, T selectedItem, String autoKey, T auto, List<T> values, Predicate<T> byNamePredicate) {
         // backward compatibility, should not happen once saved with ID
         T result = null;
         if (name != null) {
@@ -101,7 +101,7 @@ public class BaseDecoratorAware {
      *
      * @param <T> type of data
      */
-    protected static abstract class Decorator<T> {
+    abstract class Decorator<T> {
         final T data;
         final String id;
         final String name;
@@ -131,7 +131,7 @@ public class BaseDecoratorAware {
     /**
      * helper to build exception with quick fix action
      */
-    ConfigurationException buildConfigurationException(String message, Runnable quickFix) {
+    default ConfigurationException buildConfigurationException(String message, Runnable quickFix) {
         ConfigurationException exc = new ConfigurationException(message);
         exc.setQuickFix(quickFix);
         return exc;

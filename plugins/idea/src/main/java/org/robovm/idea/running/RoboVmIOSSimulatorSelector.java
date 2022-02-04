@@ -20,27 +20,19 @@ import com.intellij.openapi.module.Module;
 import com.intellij.openapi.options.ConfigurationException;
 import org.jetbrains.annotations.NotNull;
 import org.robovm.compiler.config.Arch;
-import org.robovm.compiler.config.Config;
 import org.robovm.compiler.config.CpuArch;
 import org.robovm.compiler.target.ios.DeviceType;
-import org.robovm.compiler.target.ios.IOSTarget;
 import org.robovm.compiler.target.ios.ProvisioningProfile;
 import org.robovm.compiler.target.ios.SigningIdentity;
-import org.robovm.idea.RoboVmPlugin;
 import org.robovm.idea.running.RoboVmRunConfiguration.EntryType;
-import org.robovm.idea.running.config.RoboVmRunDevicePickerConfig;
 import org.robovm.idea.running.config.RoboVmRunSimulatorPickerConfig;
 
 import javax.swing.*;
 import java.util.List;
 import java.util.Set;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-import static org.robovm.idea.running.RoboVmRunConfiguration.AUTO_PROVISIONING_PROFILE;
-import static org.robovm.idea.running.RoboVmRunConfiguration.AUTO_SIGNING_IDENTITY;
-
-public class RoboVmIOSSimulatorSelector extends BaseDecoratorAware {
+public class RoboVmIOSSimulatorSelector implements BaseDecoratorAware {
     private static final CpuArch[] DEVICE_ARCHS = {CpuArch.arm64, CpuArch.thumbv7};
     private static final CpuArch[] SIMULATOR_ARCHS = {CpuArch.x86_64, CpuArch.x86, CpuArch.arm64};
 
@@ -191,15 +183,6 @@ public class RoboVmIOSSimulatorSelector extends BaseDecoratorAware {
         pairedWatch.setSelected(selected);
         pairedWatch.setEnabled(enabled);
         pairedWatch.setText(text);
-    }
-
-    /**
-     * helper to build exception with quick fix action
-     */
-    ConfigurationException buildConfigurationException(String message, Runnable quickFix) {
-        ConfigurationException exc = new ConfigurationException(message);
-        exc.setQuickFix(quickFix);
-        return exc;
     }
 
    /**
