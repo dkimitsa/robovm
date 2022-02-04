@@ -29,6 +29,7 @@ import org.robovm.compiler.target.ios.ProvisioningProfile;
 import org.robovm.compiler.target.ios.SigningIdentity;
 import org.robovm.idea.RoboVmPlugin;
 import org.robovm.idea.running.RoboVmRunConfiguration.EntryType;
+import org.robovm.idea.running.pickers.RoboVmIOSTargetSelectionPanel;
 
 import javax.swing.*;
 import java.util.List;

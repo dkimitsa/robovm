@@ -14,10 +14,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/gpl-2.0.html>.
  */
-package org.robovm.idea.running;
+package org.robovm.idea.running.pickers;
 
 import com.intellij.openapi.module.Module;
+import com.intellij.openapi.options.ConfigurationException;
 import org.robovm.idea.running.RoboVmRunConfiguration.TargetType;
+import org.robovm.idea.running.pickers.RoboVmIOSDevicePicker;
+import org.robovm.idea.running.pickers.RoboVmIOSSimulatorPicker;
 
 import javax.swing.*;
 
@@ -56,5 +59,10 @@ public class RoboVmIOSTargetSelectionPanel {
     public void moduleChanged(Module module) {
         // module has been changed, show/hide watch checkbox
         simulatorSelector.setModuleHasWatchApp(RoboVmIOSSimulatorPicker.isWatchConfigured(module));
+    }
+
+    public void validate() throws ConfigurationException {
+        simulatorSelector.validate();
+        deviceSelector.validate();
     }
 }

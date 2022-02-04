@@ -31,8 +31,9 @@ import org.jetbrains.annotations.Nullable;
 import org.robovm.compiler.AppCompiler;
 import org.robovm.compiler.config.Config;
 import org.robovm.idea.RoboVmPlugin;
-import org.robovm.idea.running.config.RoboVmRunDevicePickerConfig;
-import org.robovm.idea.running.config.RoboVmRunSimulatorPickerConfig;
+import org.robovm.idea.running.config.DevicePickerConfig;
+import org.robovm.idea.running.config.ModulePickerConfig;
+import org.robovm.idea.running.config.SimulatorPickerConfig;
 
 import java.util.Collection;
 import java.util.List;
@@ -40,7 +41,9 @@ import java.util.List;
 public class RoboVmRunConfiguration extends ModuleBasedConfiguration<RunConfigurationModule, Element> implements
         RunConfigurationWithSuppressedDefaultDebugAction, RunConfigurationWithSuppressedDefaultRunAction,
         RunProfileWithCompileBeforeLaunchOption,
-        RoboVmRunSimulatorPickerConfig, RoboVmRunDevicePickerConfig
+        SimulatorPickerConfig,
+        DevicePickerConfig,
+        ModulePickerConfig
 {
     public static final String AUTO_PROVISIONING_PROFILE = "Auto";
 
@@ -59,16 +62,16 @@ public class RoboVmRunConfiguration extends ModuleBasedConfiguration<RunConfigur
     }
 
     private TargetType targetType;
-    private final RoboVmRunDevicePickerConfig.Bucket devicePickerConfigBucket = new RoboVmRunDevicePickerConfig.Bucket();
-    private final RoboVmRunSimulatorPickerConfig.Bucket simulatorPickerConfigBucket = new RoboVmRunSimulatorPickerConfig.Bucket();
+    private final DevicePickerConfig.Bucket devicePickerConfigBucket = new DevicePickerConfig.Bucket();
+    private final SimulatorPickerConfig.Bucket simulatorPickerConfigBucket = new SimulatorPickerConfig.Bucket();
 
     @Override
-    public RoboVmRunDevicePickerConfig.Bucket devicePickerBucket() {
+    public DevicePickerConfig.Bucket devicePickerBucket() {
         return devicePickerConfigBucket;
     }
 
     @Override
-    public RoboVmRunSimulatorPickerConfig.Bucket simulatorPickerBucket() {
+    public SimulatorPickerConfig.Bucket simulatorPickerBucket() {
         return simulatorPickerConfigBucket;
     }
 
@@ -148,8 +151,14 @@ public class RoboVmRunConfiguration extends ModuleBasedConfiguration<RunConfigur
         writeSimulatorPickerExternal(element);
     }
 
+    @Override
     public String getModuleName() {
         return getConfigurationModule().getModuleName();
+    }
+
+    @Override
+    public void setModuleName(String moduleName) {
+        getConfigurationModule().setModuleName(moduleName);
     }
 
     public boolean isDebug() {

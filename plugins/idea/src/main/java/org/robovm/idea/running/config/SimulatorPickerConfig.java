@@ -25,7 +25,7 @@ import org.robovm.compiler.config.CpuArch;
 import org.robovm.compiler.target.ios.DeviceType;
 import org.robovm.idea.running.RoboVmRunConfiguration.EntryType;
 
-public interface RoboVmRunSimulatorPickerConfig extends RoboVmRunBasePrimitiveConfig{
+public interface SimulatorPickerConfig extends BasePrimitiveConfig {
     class Bucket {
         private CpuArch simulatorArch;
         private EntryType simulatorType;

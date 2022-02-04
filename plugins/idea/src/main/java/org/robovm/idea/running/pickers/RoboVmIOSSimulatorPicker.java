@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/gpl-2.0.html>.
  */
-package org.robovm.idea.running;
+package org.robovm.idea.running.pickers;
 
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.options.ConfigurationException;
@@ -25,7 +25,7 @@ import org.robovm.compiler.config.CpuArch;
 import org.robovm.compiler.target.ios.DeviceType;
 import org.robovm.idea.RoboVmPlugin;
 import org.robovm.idea.running.RoboVmRunConfiguration.EntryType;
-import org.robovm.idea.running.config.RoboVmRunSimulatorPickerConfig;
+import org.robovm.idea.running.config.SimulatorPickerConfig;
 
 import javax.swing.*;
 import java.util.List;
@@ -82,7 +82,7 @@ public class RoboVmIOSSimulatorPicker implements BaseDecoratorAware {
         });
     }
 
-    public void applyDataFrom(@NotNull RoboVmRunSimulatorPickerConfig config) {
+    public void applyDataFrom(@NotNull SimulatorPickerConfig config) {
         try {
             updatingData = true;
             simType.setSelectedItem(getSimulatorFromConfig(config));
@@ -102,7 +102,7 @@ public class RoboVmIOSSimulatorPicker implements BaseDecoratorAware {
             throw buildConfigurationException("Simulator architecture is not specified!", () -> simArch.setSelectedIndex(0));
     }
 
-    public void saveDataTo(@NotNull RoboVmRunSimulatorPickerConfig config) {
+    public void saveDataTo(@NotNull SimulatorPickerConfig config) {
         // simulator related
         config.setSimulatorArch((CpuArch) simArch.getSelectedItem());
         config.setSimulatorType(Decorator.from(simType).entryType);
@@ -147,7 +147,7 @@ public class RoboVmIOSSimulatorPicker implements BaseDecoratorAware {
     }
 
 
-    private SimTypeDecorator getSimulatorFromConfig(RoboVmRunSimulatorPickerConfig config) {
+    private SimTypeDecorator getSimulatorFromConfig(SimulatorPickerConfig config) {
         String name = config.getSimulator();
         return getMatchingDecorator(config.getSimulatorType(), name,
                 (SimTypeDecorator) simType.getSelectedItem(),

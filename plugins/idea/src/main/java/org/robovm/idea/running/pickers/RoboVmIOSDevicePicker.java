@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/gpl-2.0.html>.
  */
-package org.robovm.idea.running;
+package org.robovm.idea.running.pickers;
 
 import com.intellij.openapi.options.ConfigurationException;
 import org.jetbrains.annotations.NotNull;
@@ -23,7 +23,7 @@ import org.robovm.compiler.config.CpuArch;
 import org.robovm.compiler.target.ios.ProvisioningProfile;
 import org.robovm.compiler.target.ios.SigningIdentity;
 import org.robovm.idea.running.RoboVmRunConfiguration.EntryType;
-import org.robovm.idea.running.config.RoboVmRunDevicePickerConfig;
+import org.robovm.idea.running.config.DevicePickerConfig;
 
 import javax.swing.*;
 import java.util.List;
@@ -58,7 +58,7 @@ public class RoboVmIOSDevicePicker implements BaseDecoratorAware {
     }
 
 
-    public void applyDataFrom(@NotNull RoboVmRunDevicePickerConfig config) {
+    public void applyDataFrom(@NotNull DevicePickerConfig config) {
         try {
             updatingData = true;
             deviceArch.setSelectedItem(config.getDeviceArch());
@@ -79,7 +79,7 @@ public class RoboVmIOSDevicePicker implements BaseDecoratorAware {
             throw buildConfigurationException("Provisioning profile is not specified!", () -> provisioningProfile.setSelectedItem(provisioningProfileAuto));
     }
 
-    public void saveDataTo(@NotNull RoboVmRunDevicePickerConfig config) {
+    public void saveDataTo(@NotNull DevicePickerConfig config) {
         // device related
         config.setDeviceArch((CpuArch) deviceArch.getSelectedItem());
         config.setSigningIdentityType(Decorator.from(signingIdentity).entryType);
@@ -114,7 +114,7 @@ public class RoboVmIOSDevicePicker implements BaseDecoratorAware {
         this.provisioningProfiles.forEach(t -> provisioningProfile.addItem(t));
     }
 
-    private SigningIdentityDecorator getSigningIdentityFromConfig(RoboVmRunDevicePickerConfig config) {
+    private SigningIdentityDecorator getSigningIdentityFromConfig(DevicePickerConfig config) {
         String name = config.getSigningIdentity();
         return getMatchingDecorator(config.getSigningIdentityType(), name,
                 (SigningIdentityDecorator) signingIdentity.getSelectedItem(),
@@ -122,7 +122,7 @@ public class RoboVmIOSDevicePicker implements BaseDecoratorAware {
                 signingIdentities, t -> Decorator.matchesName(t, name));
     }
 
-    private ProvisioningProfileDecorator getProvisioningProfileFromConfig(RoboVmRunDevicePickerConfig config) {
+    private ProvisioningProfileDecorator getProvisioningProfileFromConfig(DevicePickerConfig config) {
         String name = config.getProvisioningProfile();
         return getMatchingDecorator(config.getProvisioningProfileType(), name,
                 (ProvisioningProfileDecorator) provisioningProfile.getSelectedItem(),

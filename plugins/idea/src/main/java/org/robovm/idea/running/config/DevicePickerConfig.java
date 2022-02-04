@@ -24,9 +24,9 @@ import org.jetbrains.annotations.NotNull;
 import org.robovm.compiler.config.CpuArch;
 import org.robovm.idea.running.RoboVmRunConfiguration.EntryType;
 
-public interface RoboVmRunDevicePickerConfig extends RoboVmRunBasePrimitiveConfig{
-    public static final String AUTO_SIGNING_IDENTITY_LEGACY = "Auto (matches 'iPhone Developer|iOS Development')";
-    public static final String AUTO_SIGNING_IDENTITY = "Auto (matches 'iPhone Developer|iOS Development|Apple Development')";
+public interface DevicePickerConfig extends BasePrimitiveConfig {
+    String AUTO_SIGNING_IDENTITY_LEGACY = "Auto (matches 'iPhone Developer|iOS Development')";
+    String AUTO_SIGNING_IDENTITY = "Auto (matches 'iPhone Developer|iOS Development|Apple Development')";
 
     class Bucket {
         CpuArch deviceArch;

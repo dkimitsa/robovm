@@ -429,7 +429,7 @@ public class RoboVmPlugin {
         return getRoboVmModules(project, t -> t.equals(targetType));
     }
 
-    public static List<Module> getRoboVmModules(Project project, Predicate<String> predicate) {
+    public static List<Module> getRoboVmModules(Project project, Predicate<String> targetTypePredicate) {
         List<Module> validModules = new ArrayList<>();
         for (Module module : ModuleManager.getInstance(project).getModules()) {
             if (!isRoboVmModule(module))
@@ -437,11 +437,11 @@ public class RoboVmPlugin {
 
             // dkimitsa: if target type is specified return only matching modules. E.g. don't allow to run Framework
             // target in Console runner
-            if (predicate != null) {
+            if (targetTypePredicate != null) {
                 Config config = loadRawModuleConfig(module);
                 if (config == null)
                     continue;
-                if (!predicate.test(config.getTargetType()))
+                if (!targetTypePredicate.test(config.getTargetType()))
                     continue;
             }
             validModules.add(module);

@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/gpl-2.0.html>.
  */
-package org.robovm.idea.running;
+package org.robovm.idea.running.pickers;
 
 import com.intellij.openapi.options.ConfigurationException;
 import org.robovm.idea.running.RoboVmRunConfiguration.EntryType;
@@ -26,7 +26,7 @@ import java.util.function.Predicate;
 /**
  * Contains base code related to picking values from the list
  */
-interface BaseDecoratorAware {
+public interface BaseDecoratorAware {
 
     /**
      * Universal entry point for getting decorator by name or id
