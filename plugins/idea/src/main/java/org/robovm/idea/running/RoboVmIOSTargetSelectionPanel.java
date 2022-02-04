@@ -16,6 +16,9 @@
  */
 package org.robovm.idea.running;
 
+import com.intellij.openapi.module.Module;
+import org.robovm.idea.running.RoboVmRunConfiguration.TargetType;
+
 import javax.swing.*;
 
 public class RoboVmIOSTargetSelectionPanel {
@@ -23,6 +26,8 @@ public class RoboVmIOSTargetSelectionPanel {
     private RoboVmIOSDeviceSelector deviceSelector;
     private JRadioButton attachedDeviceRadioButton;
     private JRadioButton simulatorRadioButton;
+    @SuppressWarnings("unused") // root panel required otherwise produces No binding on root component of nested form
+    private JPanel panel;
 
     public RoboVmIOSSimulatorSelector getSimulatorSelector() {
         return simulatorSelector;
@@ -38,5 +43,18 @@ public class RoboVmIOSTargetSelectionPanel {
 
     public JRadioButton getSimulatorRadioButton() {
         return simulatorRadioButton;
+    }
+
+    public TargetType getTargetType() {
+        return (attachedDeviceRadioButton.isSelected()) ? TargetType.Device : TargetType.Simulator;
+    }
+
+    public void setTargetType(TargetType type) {
+        attachedDeviceRadioButton.setSelected(type == TargetType.Device);
+    }
+
+    public void moduleChanged(Module module) {
+        // module has been changed, show/hide watch checkbox
+        simulatorSelector.setModuleHasWatchApp(RoboVmIOSSimulatorSelector.isWatchConfigured(module));
     }
 }

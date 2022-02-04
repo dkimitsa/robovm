@@ -20,10 +20,10 @@ import com.intellij.openapi.module.Module;
 import com.intellij.openapi.options.ConfigurationException;
 import org.jetbrains.annotations.NotNull;
 import org.robovm.compiler.config.Arch;
+import org.robovm.compiler.config.Config;
 import org.robovm.compiler.config.CpuArch;
 import org.robovm.compiler.target.ios.DeviceType;
-import org.robovm.compiler.target.ios.ProvisioningProfile;
-import org.robovm.compiler.target.ios.SigningIdentity;
+import org.robovm.idea.RoboVmPlugin;
 import org.robovm.idea.running.RoboVmRunConfiguration.EntryType;
 import org.robovm.idea.running.config.RoboVmRunSimulatorPickerConfig;
 
@@ -33,40 +33,53 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 public class RoboVmIOSSimulatorSelector implements BaseDecoratorAware {
-    private static final CpuArch[] DEVICE_ARCHS = {CpuArch.arm64, CpuArch.thumbv7};
     private static final CpuArch[] SIMULATOR_ARCHS = {CpuArch.x86_64, CpuArch.x86, CpuArch.arm64};
 
     public static final String AUTO_SIMULATOR_IPHONE_TITLE = "Auto (prefers '" + DeviceType.PREFERRED_IPHONE_SIM_NAME + "')";
     public static final String AUTO_SIMULATOR_IPAD_TITLE = "Auto (prefers '" + DeviceType.PREFERRED_IPAD_SIM_NAME + "')";
 
 
-    private JPanel panel;
     private JComboBox<SimTypeDecorator> simType;
     private JComboBox<CpuArch> simArch;
     private JCheckBox pairedWatch;
+    @SuppressWarnings("unused") // root panel required otherwise produces No binding on root component of nested form
+    private JPanel panel;
 
     // copy of data that is time consuming to fetch (fetched only once when dialog is created)
     private List<SimTypeDecorator> simDeviceTypes;
     private final SimTypeDecorator simulatorAutoIPhone = new SimTypeDecorator(AUTO_SIMULATOR_IPHONE_TITLE, EntryType.AUTO);
     private final SimTypeDecorator simulatorAutoIPad = new SimTypeDecorator(AUTO_SIMULATOR_IPAD_TITLE, EntryType.AUTO2);
-    private boolean moduleHasWatchApp;
     // true if editor internally updating data and listeners should ignore the events
     private boolean updatingData;
+    private boolean moduleHasWatchApp;
+    private boolean simulatorLaunchedWatch;
+
+    public void setModuleHasWatchApp(boolean value) {
+        if (moduleHasWatchApp != value) {
+            this.moduleHasWatchApp = value;
+            updatePairedWatch();
+        }
+    }
 
     public void populate() {
+        // module is provided externaly
+        moduleHasWatchApp = false;
+        simulatorLaunchedWatch = false;
+
         // populate controls with stable data
         populateSimulators();
 
         simType.addActionListener(e -> {
             if (!updatingData) {
                 updateSimArchs((SimTypeDecorator) simType.getSelectedItem());
-                updatePairedWatch(false, null);
+                updatePairedWatch();
             }
         });
-//        module.addActionListener(e -> {
-//            if (!updatingData)
-//                updatePairedWatch(true, null);
-//        } );
+        pairedWatch.addActionListener(e -> {
+            if (!updatingData) {
+                simulatorLaunchedWatch = pairedWatch.isSelected();
+            }
+        });
     }
 
     public void applyDataFrom(@NotNull RoboVmRunSimulatorPickerConfig config) {
@@ -74,19 +87,22 @@ public class RoboVmIOSSimulatorSelector implements BaseDecoratorAware {
             updatingData = true;
             simType.setSelectedItem(getSimulatorFromConfig(config));
             simArch.setSelectedItem(populateSimulatorArch((SimTypeDecorator) simType.getSelectedItem(), config.getSimulatorArch()));
-            updatePairedWatch(true, config.isSimulatorLaunchWatch());
+            simulatorLaunchedWatch = config.isSimulatorLaunchWatch();
+            updatePairedWatch();
         } finally {
             updatingData = false;
         }
     }
 
-    protected void saveDataTo(@NotNull RoboVmRunSimulatorPickerConfig config) throws ConfigurationException {
+    public void validate() throws ConfigurationException {
         // validate all data
         if (simType.getSelectedItem() == null)
             throw buildConfigurationException("Simulator is not specified!", () -> simType.setSelectedItem(simulatorAutoIPhone));
         if (simArch.getSelectedItem() == null)
             throw buildConfigurationException("Simulator architecture is not specified!", () -> simArch.setSelectedIndex(0));
+    }
 
+    public void saveDataTo(@NotNull RoboVmRunSimulatorPickerConfig config) {
         // simulator related
         config.setSimulatorArch((CpuArch) simArch.getSelectedItem());
         config.setSimulatorType(Decorator.from(simType).entryType);
@@ -99,12 +115,13 @@ public class RoboVmIOSSimulatorSelector implements BaseDecoratorAware {
         CpuArch result = null;
         simArch.removeAllItems();
         if (simulator != null) {
-            if (simulator == simulatorAutoIPad || simulator == simulatorAutoIPhone){
+            if (simulator == simulatorAutoIPad || simulator == simulatorAutoIPhone) {
                 // auto simulator, use default OS arch (x86_64 or arm64 on m1)is allowed, if arch doesn't match -- override
                 simArch.addItem(DeviceType.DEFAULT_HOST_ARCH);
                 result = DeviceType.DEFAULT_HOST_ARCH;
             } else {
-                Set<Arch> simArches = simulator.data.getArchs();
+                Set<CpuArch> simArches = simulator.data.getArchs().stream()
+                        .map(Arch::getCpuArch).collect(Collectors.toSet());
                 for (CpuArch a : SIMULATOR_ARCHS) {
                     if (simArches.contains(a)) {
                         simArch.addItem(a);
@@ -135,7 +152,7 @@ public class RoboVmIOSSimulatorSelector implements BaseDecoratorAware {
         return getMatchingDecorator(config.getSimulatorType(), name,
                 (SimTypeDecorator) simType.getSelectedItem(),
                 null, simulatorAutoIPhone, simulatorAutoIPad,
-                simDeviceTypes,  t -> SimTypeDecorator.matchesName(t, config.getSimulator(), config.getSimulatorSdk()));
+                simDeviceTypes, t -> SimTypeDecorator.matchesName(t, config.getSimulator(), config.getSimulatorSdk()));
     }
 
     private void updateSimArchs(SimTypeDecorator simulator) {
@@ -145,19 +162,11 @@ public class RoboVmIOSSimulatorSelector implements BaseDecoratorAware {
         simArch.setSelectedItem(arch);
     }
 
-    private void updatePairedWatch(boolean moduleChanged, Boolean valueToSet) {
+    private void updatePairedWatch() {
         boolean visible;
         boolean enabled;
-        boolean selected = valueToSet != null ? valueToSet : pairedWatch.isSelected();
+        boolean selected = simulatorLaunchedWatch;
         String text;
-
-        if (moduleChanged) {
-// FIXME!
-//            // module changed
-//            Decorator<Module> moduleSelected = Decorator.from(module);
-//            Config config = moduleSelected != null ? RoboVmPlugin.loadRawModuleConfig(moduleSelected.data) : null;
-//            moduleHasWatchApp = config != null && config.getWatchKitApp() != null;
-        }
 
         if (!moduleHasWatchApp) {
             selected = false;
@@ -185,7 +194,7 @@ public class RoboVmIOSSimulatorSelector implements BaseDecoratorAware {
         pairedWatch.setText(text);
     }
 
-   /**
+    /**
      * decorator for simulator type
      */
     private static class SimTypeDecorator extends Decorator<DeviceType> {
@@ -209,53 +218,12 @@ public class RoboVmIOSSimulatorSelector implements BaseDecoratorAware {
         }
     }
 
-    /**
-     * decorator for singing identity
-     */
-    private static class SigningIdentityDecorator extends Decorator<SigningIdentity> {
-        SigningIdentityDecorator(String title, EntryType entryType) {
-            super(null, null, title, entryType);
-        }
-
-        SigningIdentityDecorator(SigningIdentity identity) {
-            super(identity, identity.getFingerprint(), identity.getName(), EntryType.ID);
-        }
-
-        @Override
-        public String toString() {
-            return name;
-        }
-    }
 
     /**
-     * decorator for provisioning profile
+     * Helper that fetches module config and returns if Watch is configured there
      */
-    private static class ProvisioningProfileDecorator extends Decorator<ProvisioningProfile> {
-        ProvisioningProfileDecorator(String title, EntryType entryType) {
-            super(null, null, title, entryType);
-        }
-
-        ProvisioningProfileDecorator(ProvisioningProfile profile) {
-            super(profile, profile.getUuid(), profile.getName(), EntryType.ID);
-        }
-
-        @Override
-        public String toString() {
-            return name;
-        }
+    public static boolean isWatchConfigured(Module module) {
+        Config config = module != null ? RoboVmPlugin.loadRawModuleConfig(module) : null;
+        return config != null && config.getWatchKitApp() != null;
     }
-
-    /**
-     * decorator for module
-     */
-    private static class ModuleNameDecorator extends Decorator<Module> {
-        ModuleNameDecorator(Module module) {
-            super(module, module.getName(), module.getName(), EntryType.ID);
-        }
-
-        @Override
-        public String toString() {
-            return name;
-        }
-    }
- }
+}

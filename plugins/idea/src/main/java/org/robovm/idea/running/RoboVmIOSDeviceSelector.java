@@ -35,10 +35,11 @@ import static org.robovm.idea.running.RoboVmRunConfiguration.AUTO_SIGNING_IDENTI
 public class RoboVmIOSDeviceSelector implements BaseDecoratorAware {
     private static final CpuArch[] DEVICE_ARCHS = {CpuArch.arm64, CpuArch.thumbv7};
 
-    private JPanel panel;
     private JComboBox<SigningIdentityDecorator> signingIdentity;
     private JComboBox<ProvisioningProfileDecorator> provisioningProfile;
     private JComboBox<CpuArch> deviceArch;
+    @SuppressWarnings("unused") // root panel required otherwise produces No binding on root component of nested form
+    private JPanel panel;
 
     // copy of data that is time-consuming to fetch (fetched only once when dialog is created)
     private List<ProvisioningProfileDecorator> provisioningProfiles;
@@ -68,7 +69,7 @@ public class RoboVmIOSDeviceSelector implements BaseDecoratorAware {
         }
     }
 
-    protected void saveDataTo(@NotNull RoboVmRunDevicePickerConfig config) throws ConfigurationException {
+    public void validate() throws ConfigurationException {
         // validate all data
         if (deviceArch.getSelectedItem() == null)
             throw buildConfigurationException("Device architecture is not specified!", () -> deviceArch.setSelectedItem(Arch.arm64));
@@ -76,7 +77,9 @@ public class RoboVmIOSDeviceSelector implements BaseDecoratorAware {
             throw buildConfigurationException("Signing identity is not specified!", () -> signingIdentity.setSelectedItem(signingIdentityAuto));
         if (provisioningProfile.getSelectedItem() == null)
             throw buildConfigurationException("Provisioning profile is not specified!", () -> provisioningProfile.setSelectedItem(provisioningProfileAuto));
+    }
 
+    public void saveDataTo(@NotNull RoboVmRunDevicePickerConfig config) {
         // device related
         config.setDeviceArch((CpuArch) deviceArch.getSelectedItem());
         config.setSigningIdentityType(Decorator.from(signingIdentity).entryType);
@@ -163,4 +166,4 @@ public class RoboVmIOSDeviceSelector implements BaseDecoratorAware {
         }
     }
 
- }
+}

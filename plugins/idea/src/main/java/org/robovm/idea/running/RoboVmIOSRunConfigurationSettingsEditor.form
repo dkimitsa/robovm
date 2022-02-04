@@ -7,7 +7,7 @@
     <properties/>
     <border type="none"/>
     <children>
-      <tabbedpane id="a0bdf" binding="tabbedPane1" default-binding="true">
+      <tabbedpane id="a0bdf" default-binding="true">
         <constraints border-constraint="Center"/>
         <properties/>
         <border type="none"/>
