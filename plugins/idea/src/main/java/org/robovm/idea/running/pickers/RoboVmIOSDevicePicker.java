@@ -23,7 +23,6 @@ import org.robovm.compiler.config.CpuArch;
 import org.robovm.compiler.target.ios.ProvisioningProfile;
 import org.robovm.compiler.target.ios.SigningIdentity;
 import org.robovm.idea.running.RoboVmRunConfiguration.EntryType;
-import org.robovm.idea.running.config.DevicePickerConfig;
 
 import javax.swing.*;
 import java.util.List;

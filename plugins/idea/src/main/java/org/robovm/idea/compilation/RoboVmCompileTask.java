@@ -276,7 +276,7 @@ public class RoboVmCompileTask {
                 protected void doCompile() throws Exception {
                     compiler.build();
                     if (!progress.isCanceled()) {
-                        // perform prepare for launch here, as doing this in lauch task will block UI due bad design
+                        // perform prepare for launch here, as doing this in launch task will block UI due bad design
                         if (config.getTarget().canLaunch()) {
                             long start = System.currentTimeMillis();
                             config.getTarget().prepareLaunch();

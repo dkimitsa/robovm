@@ -402,7 +402,7 @@ public class IOSTarget extends AbstractTarget {
 
         if (isDeviceArch(arch)) {
             if (config.isIosSkipSigning()) {
-                config.getLogger().warn("Skiping code signing. The resulting app will "
+                config.getLogger().warn("Skipping code signing. The resulting app will "
                         + "be unsigned and will not run on unjailbroken devices");
                 codesignApp(SigningIdentity.ADHOC, getOrCreateEntitlementsPList(true, getBundleId()), appDir);
             } else {

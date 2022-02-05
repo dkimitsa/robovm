@@ -25,7 +25,6 @@ import org.robovm.compiler.config.CpuArch;
 import org.robovm.compiler.target.ios.DeviceType;
 import org.robovm.idea.RoboVmPlugin;
 import org.robovm.idea.running.RoboVmRunConfiguration.EntryType;
-import org.robovm.idea.running.config.SimulatorPickerConfig;
 
 import javax.swing.*;
 import java.util.List;

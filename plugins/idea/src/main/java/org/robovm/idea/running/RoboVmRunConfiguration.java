@@ -31,9 +31,9 @@ import org.jetbrains.annotations.Nullable;
 import org.robovm.compiler.AppCompiler;
 import org.robovm.compiler.config.Config;
 import org.robovm.idea.RoboVmPlugin;
-import org.robovm.idea.running.config.DevicePickerConfig;
-import org.robovm.idea.running.config.ModulePickerConfig;
-import org.robovm.idea.running.config.SimulatorPickerConfig;
+import org.robovm.idea.running.pickers.DevicePickerConfig;
+import org.robovm.idea.running.pickers.ModulePickerConfig;
+import org.robovm.idea.running.pickers.SimulatorPickerConfig;
 
 import java.util.Collection;
 import java.util.List;
