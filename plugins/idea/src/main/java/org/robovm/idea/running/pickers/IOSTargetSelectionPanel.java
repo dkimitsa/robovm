@@ -19,24 +19,22 @@ package org.robovm.idea.running.pickers;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.options.ConfigurationException;
 import org.robovm.idea.running.RoboVmRunConfiguration.TargetType;
-import org.robovm.idea.running.pickers.RoboVmIOSDevicePicker;
-import org.robovm.idea.running.pickers.RoboVmIOSSimulatorPicker;
 
 import javax.swing.*;
 
-public class RoboVmIOSTargetSelectionPanel {
-    private RoboVmIOSSimulatorPicker simulatorSelector;
-    private RoboVmIOSDevicePicker deviceSelector;
+public class IOSTargetSelectionPanel {
+    private IOSSimulatorPicker simulatorSelector;
+    private IOSDevicePicker deviceSelector;
     private JRadioButton attachedDeviceRadioButton;
     private JRadioButton simulatorRadioButton;
     @SuppressWarnings("unused") // root panel required otherwise produces No binding on root component of nested form
     private JPanel panel;
 
-    public RoboVmIOSSimulatorPicker getSimulatorSelector() {
+    public IOSSimulatorPicker getSimulatorSelector() {
         return simulatorSelector;
     }
 
-    public RoboVmIOSDevicePicker getDeviceSelector() {
+    public IOSDevicePicker getDeviceSelector() {
         return deviceSelector;
     }
 
@@ -58,7 +56,7 @@ public class RoboVmIOSTargetSelectionPanel {
 
     public void moduleChanged(Module module) {
         // module has been changed, show/hide watch checkbox
-        simulatorSelector.setModuleHasWatchApp(RoboVmIOSSimulatorPicker.isWatchConfigured(module));
+        simulatorSelector.setModuleHasWatchApp(IOSSimulatorPicker.isWatchConfigured(module));
     }
 
     public void validate() throws ConfigurationException {

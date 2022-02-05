@@ -20,16 +20,16 @@ import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.options.SettingsEditor;
 import org.jetbrains.annotations.NotNull;
 import org.robovm.compiler.target.ios.IOSTarget;
-import org.robovm.idea.running.pickers.RoboVmIOSTargetSelectionPanel;
-import org.robovm.idea.running.pickers.RoboVmModulePicker;
+import org.robovm.idea.running.pickers.IOSTargetSelectionPanel;
+import org.robovm.idea.running.pickers.ModulePicker;
 
 import javax.swing.*;
 
 public class RoboVmIOSRunConfigurationSettingsEditor extends SettingsEditor<RoboVmRunConfiguration> {
     private JPanel panel;
     private JTextArea args;
-    private RoboVmIOSTargetSelectionPanel targetSelectionPanel;
-    private RoboVmModulePicker modulePicker;
+    private IOSTargetSelectionPanel targetSelectionPanel;
+    private ModulePicker modulePicker;
 
     // true if editor internally updating data and listeners should ignore the events
     private boolean updatingData;

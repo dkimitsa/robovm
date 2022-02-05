@@ -20,16 +20,9 @@ import com.intellij.openapi.module.Module;
 import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.options.SettingsEditor;
 import org.jetbrains.annotations.NotNull;
-import org.robovm.compiler.config.Arch;
-import org.robovm.compiler.config.Config;
-import org.robovm.compiler.config.CpuArch;
-import org.robovm.compiler.target.ios.DeviceType;
-import org.robovm.compiler.target.ios.IOSTarget;
-import org.robovm.compiler.target.ios.ProvisioningProfile;
-import org.robovm.compiler.target.ios.SigningIdentity;
-import org.robovm.idea.RoboVmPlugin;
-import org.robovm.idea.running.RoboVmRunConfiguration.EntryType;
-import org.robovm.idea.running.pickers.RoboVmIOSTargetSelectionPanel;
+import org.robovm.compiler.target.framework.FrameworkTarget;
+import org.robovm.idea.running.pickers.IOSTargetSelectionPanel;
+import org.robovm.idea.running.pickers.ModulePicker;
 
 import javax.swing.*;
 import java.util.List;
@@ -59,8 +52,8 @@ public class RoboVmIOSFrameworkRunConfigurationSettingsEditor extends SettingsEd
     private JComboBox<CpuArch> simArch;
     private JComboBox<CpuArch> deviceArch;
     private JTextArea args;
-    private JCheckBox pairedWatch;
-    private RoboVmIOSTargetSelectionPanel roboVmIOSTargetSelectionPanel1;
+    private IOSTargetSelectionPanel targetSelectionPanel;
+    private ModulePicker modulePicker;
 
     // copy of data that is time consuming to fetch (fetched only once when dialog is created)
     private List<ModuleNameDecorator> roboVmModules;

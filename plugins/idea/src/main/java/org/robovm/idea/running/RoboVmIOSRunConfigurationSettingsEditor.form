@@ -45,7 +45,7 @@
                   </component>
                 </children>
               </scrollpane>
-              <nested-form id="48a15" form-file="org/robovm/idea/running/pickers/RoboVmIOSTargetSelectionPanel.form" binding="targetSelectionPanel">
+              <nested-form id="48a15" form-file="org/robovm/idea/running/pickers/IOSTargetSelectionPanel.form" binding="targetSelectionPanel">
                 <constraints>
                   <grid row="0" column="0" row-span="1" col-span="1" vsize-policy="3" hsize-policy="3" anchor="1" fill="1" indent="0" use-parent-layout="false">
                     <preferred-size width="276" height="227"/>
@@ -56,7 +56,7 @@
           </grid>
         </children>
       </tabbedpane>
-      <nested-form id="fd765" form-file="org/robovm/idea/running/pickers/RoboVmModulePicker.form" binding="modulePicker">
+      <nested-form id="fd765" form-file="org/robovm/idea/running/pickers/ModulePicker.form" binding="modulePicker">
         <constraints border-constraint="North"/>
       </nested-form>
     </children>

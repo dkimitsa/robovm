@@ -31,7 +31,7 @@ import java.util.stream.Collectors;
 import static org.robovm.idea.running.RoboVmRunConfiguration.AUTO_PROVISIONING_PROFILE;
 import static org.robovm.idea.running.RoboVmRunConfiguration.AUTO_SIGNING_IDENTITY;
 
-public class RoboVmIOSDevicePicker implements BaseDecoratorAware {
+public class IOSDevicePicker implements BaseDecoratorAware {
     private static final CpuArch[] DEVICE_ARCHS = {CpuArch.arm64, CpuArch.thumbv7};
 
     private JComboBox<SigningIdentityDecorator> signingIdentity;

@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
-public class RoboVmModulePicker implements BaseDecoratorAware {
+public class ModulePicker implements BaseDecoratorAware {
 
     @SuppressWarnings("unused") // root panel required otherwise produces No binding on root component of nested form
     private JPanel panel;
