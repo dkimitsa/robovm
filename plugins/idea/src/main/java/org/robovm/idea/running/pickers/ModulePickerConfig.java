@@ -16,6 +16,9 @@
  */
 package org.robovm.idea.running.pickers;
 
+/**
+ * Interface that provides module name to ModulePicker widget
+ */
 public interface ModulePickerConfig extends BasePrimitiveConfig {
     String getModuleName();
     void setModuleName(String moduleName);

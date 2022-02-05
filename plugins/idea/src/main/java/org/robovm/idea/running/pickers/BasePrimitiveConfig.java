@@ -16,11 +16,12 @@
  */
 package org.robovm.idea.running.pickers;
 
+/**
+ * Interface provides common code to be shared with configs
+ *
+ */
 public interface BasePrimitiveConfig {
 
-    //
-    // Helpers
-    //
     default <T extends Enum<T>> T valueOf(Class<T> enumType, String name) {
         try {
             return name != null ? Enum.valueOf(enumType, name) : null;

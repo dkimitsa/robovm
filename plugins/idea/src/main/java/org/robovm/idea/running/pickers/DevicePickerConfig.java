@@ -24,6 +24,12 @@ import org.jetbrains.annotations.NotNull;
 import org.robovm.compiler.config.CpuArch;
 import org.robovm.idea.running.RoboVmRunConfiguration.EntryType;
 
+/**
+ * Interface that will inject code related to saving/restoring iOS device data to Run configuration.
+ * Target class have to implement devicePickerBucket to return value object where all
+ * parameters are stored.
+ * Also, it's the interface IOSDevicePicker is working with
+ */
 public interface DevicePickerConfig extends BasePrimitiveConfig {
     String AUTO_SIGNING_IDENTITY_LEGACY = "Auto (matches 'iPhone Developer|iOS Development')";
     String AUTO_SIGNING_IDENTITY = "Auto (matches 'iPhone Developer|iOS Development|Apple Development')";
@@ -36,6 +42,9 @@ public interface DevicePickerConfig extends BasePrimitiveConfig {
         String provisioningProfile;
     }
 
+    /**
+     * target class is responsible to return data bucket to allow default implementation to work
+     */
     Bucket devicePickerBucket();
 
     default CpuArch getDeviceArch() {

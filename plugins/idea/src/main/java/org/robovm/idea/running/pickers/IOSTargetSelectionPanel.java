@@ -22,6 +22,9 @@ import org.robovm.idea.running.RoboVmRunConfiguration.TargetType;
 
 import javax.swing.*;
 
+/**
+ * Panel that combines simulator and device selection widgets, adds radio buttons to select target type
+ */
 public class IOSTargetSelectionPanel {
     private IOSSimulatorPicker simulatorSelector;
     private IOSDevicePicker deviceSelector;

@@ -28,6 +28,10 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
+/**
+ * widget that provides a combobox with RoboVM module selection.
+ * predicate is used to filter modules by criteria (e.g. iOS or console project)
+ */
 public class ModulePicker implements BaseDecoratorAware {
 
     @SuppressWarnings("unused") // root panel required otherwise produces No binding on root component of nested form

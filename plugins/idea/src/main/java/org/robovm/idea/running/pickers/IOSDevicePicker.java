@@ -31,6 +31,12 @@ import java.util.stream.Collectors;
 import static org.robovm.idea.running.RoboVmRunConfiguration.AUTO_PROVISIONING_PROFILE;
 import static org.robovm.idea.running.RoboVmRunConfiguration.AUTO_SIGNING_IDENTITY;
 
+/**
+ * iOS device selection widget, provides two combo boxes:
+ * - Signing identity
+ * - Device architecture
+ * Picks signing identities and fill the combo-box
+ */
 public class IOSDevicePicker implements BaseDecoratorAware {
     private static final CpuArch[] DEVICE_ARCHS = {CpuArch.arm64, CpuArch.thumbv7};
 

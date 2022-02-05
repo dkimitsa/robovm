@@ -24,7 +24,7 @@ import java.util.List;
 import java.util.function.Predicate;
 
 /**
- * Contains base code related to picking values from the list
+ * Contains base code related to picking values from the list, base decorator classes and
  */
 public interface BaseDecoratorAware {
 

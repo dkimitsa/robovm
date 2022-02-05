@@ -31,6 +31,12 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * iOS Simulator selection widget, provides two combo boxes:
+ * - Simulator from simctl
+ * - Simulator Arch
+ * Automatically populates simulator list from DeviceType.listDeviceTypes
+ */
 public class IOSSimulatorPicker implements BaseDecoratorAware {
     private static final CpuArch[] SIMULATOR_ARCHS = {CpuArch.x86_64, CpuArch.x86, CpuArch.arm64};
 

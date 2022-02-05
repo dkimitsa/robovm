@@ -25,6 +25,12 @@ import org.robovm.compiler.config.CpuArch;
 import org.robovm.compiler.target.ios.DeviceType;
 import org.robovm.idea.running.RoboVmRunConfiguration.EntryType;
 
+/**
+ * Interface that will inject code related to saving/restoring Simulator data to Run configuration.
+ * Target class have to implement devicePickerBucket to return value object where all
+ * parameters are stored.
+ * Also, it's the interface IOSDevicePicker is working with
+ */
 public interface SimulatorPickerConfig extends BasePrimitiveConfig {
     class Bucket {
         private CpuArch simulatorArch;
@@ -34,6 +40,9 @@ public interface SimulatorPickerConfig extends BasePrimitiveConfig {
         private boolean simulatorLaunchWatch;
     }
 
+    /**
+     * target class is responsible to return data bucket to allow default implementation to work
+     */
     Bucket simulatorPickerBucket();
 
     default CpuArch getSimulatorArch() {
@@ -100,7 +109,6 @@ public interface SimulatorPickerConfig extends BasePrimitiveConfig {
     }
 
     default void writeSimulatorPickerExternal(@NotNull Element element) throws WriteExternalException {
-
         JDOMExternalizerUtil.writeField(element, "simArch", toStringOrNull(simulatorPickerBucket().simulatorArch));
         JDOMExternalizerUtil.writeField(element, "simulatorType", toStringOrNull(simulatorPickerBucket().simulatorType));
         JDOMExternalizerUtil.writeField(element, "simulatorName", simulatorPickerBucket().simulator);
