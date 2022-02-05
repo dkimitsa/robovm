@@ -7,6 +7,7 @@ import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.openapi.actionSystem.DataContext;
 import com.intellij.openapi.progress.ProgressIndicator;
 import com.intellij.openapi.progress.ProgressManager;
+import com.intellij.openapi.progress.Task.Backgroundable;
 import com.intellij.openapi.util.Key;
 import com.intellij.openapi.util.Ref;
 import com.intellij.util.concurrency.Semaphore;
@@ -84,7 +85,7 @@ public class RoboVmBeforeRunTaskProvider extends BeforeRunTaskProvider<RoboVmBef
         final Semaphore done = new Semaphore();
         done.down();
 
-        ProgressManager.getInstance().run(new com.intellij.openapi.progress.Task.Backgroundable(env.getProject(), "Building RoboVM Project ", true) {
+        ProgressManager.getInstance().run(new Backgroundable(env.getProject(), "Building RoboVM Project ", true) {
             @Override
             public void run(@NotNull ProgressIndicator progressIndicator) {
                 try {
