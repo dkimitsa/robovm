@@ -54,7 +54,7 @@ public class RoboVmIOSFrameworkRunConfigurationSettingsEditor extends SettingsEd
     protected void resetEditorFrom(@NotNull RoboVmRunConfiguration config) {
         try {
             updatingData = true;
-            modulePicker.applyDataFrom(config.getProject(), FrameworkTarget::matches, config);
+            modulePicker.applyDataFrom(config.getProject(), FrameworkTarget::matches, config.getModuleName());
             targetSelectionPanel.getDeviceSelector().applyDataFrom(config);
             targetSelectionPanel.getSimulatorSelector().applyDataFrom(config);
             targetSelectionPanel.setTargetType(config.getTargetType());
@@ -73,7 +73,7 @@ public class RoboVmIOSFrameworkRunConfigurationSettingsEditor extends SettingsEd
         // save all data
         config.setTargetType(targetSelectionPanel.getTargetType());
         // module
-        modulePicker.saveDataTo(config);
+        config.setModuleName(modulePicker.getSelectedModuleName());
         // device related
         targetSelectionPanel.getDeviceSelector().saveDataTo(config);
         // simulator related

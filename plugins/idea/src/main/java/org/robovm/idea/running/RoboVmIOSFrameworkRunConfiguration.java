@@ -33,7 +33,6 @@ import org.robovm.compiler.config.Config;
 import org.robovm.idea.RoboVmPlugin;
 import org.robovm.idea.running.RoboVmRunConfiguration.TargetType;
 import org.robovm.idea.running.pickers.DevicePickerConfig;
-import org.robovm.idea.running.pickers.ModulePickerConfig;
 import org.robovm.idea.running.pickers.SimulatorPickerConfig;
 
 import java.util.Collection;
@@ -43,8 +42,7 @@ public class RoboVmIOSFrameworkRunConfiguration extends ModuleBasedConfiguration
         RunConfigurationWithSuppressedDefaultDebugAction, RunConfigurationWithSuppressedDefaultRunAction,
         RunProfileWithCompileBeforeLaunchOption,
         SimulatorPickerConfig,
-        DevicePickerConfig,
-        ModulePickerConfig
+        DevicePickerConfig
 {
 
     private TargetType targetType;
@@ -133,7 +131,6 @@ public class RoboVmIOSFrameworkRunConfiguration extends ModuleBasedConfiguration
         writeSimulatorPickerExternal(element);
     }
 
-    @Override
     public String getModuleName() {
         return getConfigurationModule().getModuleName();
     }

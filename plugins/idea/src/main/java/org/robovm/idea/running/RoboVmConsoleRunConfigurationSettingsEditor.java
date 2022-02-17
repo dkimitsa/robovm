@@ -16,66 +16,38 @@
  */
 package org.robovm.idea.running;
 
-import com.intellij.openapi.fileChooser.FileChooserDescriptor;
-import com.intellij.openapi.fileChooser.FileChooserDialog;
-import com.intellij.openapi.fileChooser.FileChooserFactory;
-import com.intellij.openapi.module.Module;
 import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.options.SettingsEditor;
-import com.intellij.openapi.vfs.VirtualFile;
 import org.jetbrains.annotations.NotNull;
 import org.robovm.compiler.config.CpuArch;
-import org.robovm.compiler.target.ConsoleTarget;
+import org.robovm.compiler.target.framework.FrameworkTarget;
 import org.robovm.compiler.target.ios.DeviceType;
-import org.robovm.idea.RoboVmPlugin;
+import org.robovm.idea.running.pickers.BaseDecoratorAware;
+import org.robovm.idea.running.pickers.DirectoryPicker;
+import org.robovm.idea.running.pickers.ModulePicker;
 
 import javax.swing.*;
-import java.util.Comparator;
-import java.util.List;
 
-public class RoboVmConsoleRunConfigurationSettingsEditor extends SettingsEditor<RoboVmRunConfiguration> {
-    private JComboBox<String> module;
+public class RoboVmConsoleRunConfigurationSettingsEditor extends SettingsEditor<RoboVmRunConfiguration>
+        implements BaseDecoratorAware {
     private JPanel panel;
     private JTextArea args;
-    private JTextField workingDir;
-    private JButton browseButton;
     private JComboBox<CpuArch> deviceArch;
-
-    @Override
-    protected void resetEditorFrom(@NotNull RoboVmRunConfiguration config) {
-        populateControls(config);
-    }
-
-    @Override
-    protected void applyEditorTo(@NotNull RoboVmRunConfiguration config) throws ConfigurationException {
-        if (module.getSelectedItem() == null)
-            throw new ConfigurationException("RoboVM module is not specified!");
-        if (deviceArch.getSelectedItem() == null)
-            throw buildConfigurationException("Device architecture is not specified!", () -> deviceArch.setSelectedItem(DeviceType.DEFAULT_HOST_ARCH));
-        config.setModuleName(module.getSelectedItem().toString());
-        config.setDeviceArch((CpuArch)deviceArch.getSelectedItem());
-        config.setTargetType(RoboVmRunConfiguration.TargetType.Console);
-        config.setArguments(args.getText());
-        config.setWorkingDir(workingDir.getText());
-    }
+    private DirectoryPicker directoryPicker;
+    private ModulePicker modulePicker;
 
     @NotNull
     @Override
     protected JComponent createEditor() {
+        modulePicker.populate();
+        directoryPicker.populate("Working directory", false);
+
         return panel;
     }
 
-    private void populateControls(final RoboVmRunConfiguration config) {
-        // populate with RoboVM Sdk modules
-        this.module.removeAllItems();
-        List<Module> roboVmModules = RoboVmPlugin.getRoboVmModules(config.getProject(), ConsoleTarget.TYPE);
-        roboVmModules.sort(Comparator.comparing(Module::getName));
-        for(Module module: roboVmModules) {
-            this.module.addItem(module.getName());
-            if(module.getName().equals(config.getModuleName())) {
-                this.module.setSelectedIndex(this.module.getItemCount() - 1);
-            }
-        }
+    @Override
+    protected void resetEditorFrom(@NotNull RoboVmRunConfiguration config) {
+        modulePicker.applyDataFrom(config.getProject(), FrameworkTarget::matches, config);
 
         // populate arch
         deviceArch.removeAllItems();
@@ -87,35 +59,23 @@ public class RoboVmConsoleRunConfigurationSettingsEditor extends SettingsEditor<
 
         this.args.setText(config.getArguments());
         String dir = config.getWorkingDir();
-        if(dir == null || dir.trim().isEmpty()) {
+        if (dir == null || dir.trim().isEmpty()) {
             dir = config.getProject().getBasePath();
         }
-        this.workingDir.setText(dir);
-        this.browseButton.addActionListener(e -> {
-            FileChooserDialog fileChooser = FileChooserFactory.getInstance()
-                    .createFileChooser(new FileChooserDescriptor(true, false, false, false, false, false) {
-                        @Override
-                        public boolean isFileVisible(VirtualFile file, boolean showHiddenFiles) {
-                            return file.isDirectory();
-                        }
-                        @Override
-                        public boolean isFileSelectable(VirtualFile file) {
-                            return file.isDirectory();
-                        }
-                    }, null, panel);
-            VirtualFile[] dir1 = fileChooser.choose(config.getProject());
-            if(dir1.length > 0) {
-                workingDir.setText(dir1[0].getCanonicalPath());
-            }
-        });
+        directoryPicker.setDirectory(dir);
     }
 
-    /**
-     * helper to build exception with quick fix action
-     */
-    ConfigurationException buildConfigurationException(String message, Runnable quickFix) {
-        ConfigurationException exc = new ConfigurationException(message);
-        exc.setQuickFix(quickFix);
-        return exc;
+    @Override
+    protected void applyEditorTo(@NotNull RoboVmRunConfiguration config) throws ConfigurationException {
+        // validate
+        modulePicker.validate();
+        directoryPicker.validate();
+        if (deviceArch.getSelectedItem() == null)
+            throw buildConfigurationException("Device architecture is not specified!", () -> deviceArch.setSelectedItem(DeviceType.DEFAULT_HOST_ARCH));
+
+        config.setDeviceArch((CpuArch) deviceArch.getSelectedItem());
+        config.setTargetType(RoboVmRunConfiguration.TargetType.Console);
+        config.setArguments(args.getText());
+        config.setWorkingDir(directoryPicker.getSelectedDirectory());
     }
 }

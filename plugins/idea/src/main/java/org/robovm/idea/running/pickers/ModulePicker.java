@@ -75,7 +75,6 @@ public class ModulePicker implements BaseDecoratorAware {
         } finally {
             updatingData = false;
         }
-
     }
 
     public void validate() throws ConfigurationException {
