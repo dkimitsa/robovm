@@ -20,7 +20,7 @@ import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.options.SettingsEditor;
 import org.jetbrains.annotations.NotNull;
 import org.robovm.compiler.config.CpuArch;
-import org.robovm.compiler.target.framework.FrameworkTarget;
+import org.robovm.compiler.target.ConsoleTarget;
 import org.robovm.compiler.target.ios.DeviceType;
 import org.robovm.idea.running.pickers.BaseDecoratorAware;
 import org.robovm.idea.running.pickers.DirectoryPicker;
@@ -47,18 +47,19 @@ public class RoboVmConsoleRunConfigurationSettingsEditor extends SettingsEditor<
 
     @Override
     protected void resetEditorFrom(@NotNull RoboVmRunConfiguration config) {
-        modulePicker.applyDataFrom(config.getProject(), FrameworkTarget::matches, config.getOptions());
+        RoboVmRunConfigurationOptions options = config.getOptions();
+        modulePicker.applyDataFrom(config.getProject(), ConsoleTarget.TYPE::equals, options);
 
         // populate arch
         deviceArch.removeAllItems();
         if (DeviceType.DEFAULT_HOST_ARCH == CpuArch.arm64)
             deviceArch.addItem(CpuArch.arm64);
         deviceArch.addItem(CpuArch.x86_64);
-        if (config.getDeviceArch() == CpuArch.x86_64 || config.getDeviceArch() == DeviceType.DEFAULT_HOST_ARCH)
-            deviceArch.setSelectedItem(config.getDeviceArch());
+        if (options.getDeviceArch() == CpuArch.x86_64 || options.getDeviceArch() == DeviceType.DEFAULT_HOST_ARCH)
+            deviceArch.setSelectedItem(options.getDeviceArch());
 
-        this.args.setText(config.getArguments());
-        String dir = config.getWorkingDir();
+        this.args.setText(options.getArguments());
+        String dir = options.getWorkingDirectory();
         if (dir == null || dir.trim().isEmpty()) {
             dir = config.getProject().getBasePath();
         }
@@ -67,15 +68,16 @@ public class RoboVmConsoleRunConfigurationSettingsEditor extends SettingsEditor<
 
     @Override
     protected void applyEditorTo(@NotNull RoboVmRunConfiguration config) throws ConfigurationException {
+        RoboVmRunConfigurationOptions options = config.getOptions();
+
         // validate
         modulePicker.validate();
         directoryPicker.validate();
         if (deviceArch.getSelectedItem() == null)
             throw buildConfigurationException("Device architecture is not specified!", () -> deviceArch.setSelectedItem(DeviceType.DEFAULT_HOST_ARCH));
 
-        config.setDeviceArch((CpuArch) deviceArch.getSelectedItem());
-        config.setTargetType(RoboVmRunConfiguration.TargetType.Console);
-        config.setArguments(args.getText());
-        config.setWorkingDir(directoryPicker.getSelectedDirectory());
+        options.setDeviceArch((CpuArch) deviceArch.getSelectedItem());
+        options.setArguments(args.getText());
+        options.setWorkingDirectory(directoryPicker.getSelectedDirectory());
     }
 }

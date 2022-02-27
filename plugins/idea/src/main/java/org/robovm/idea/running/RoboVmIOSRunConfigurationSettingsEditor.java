@@ -54,11 +54,12 @@ public class RoboVmIOSRunConfigurationSettingsEditor extends SettingsEditor<Robo
     protected void resetEditorFrom(@NotNull RoboVmRunConfiguration config) {
         try {
             updatingData = true;
-            modulePicker.applyDataFrom(config.getProject(), IOSTarget.TYPE::equals, config.getOptions());
-            targetSelectionPanel.getDeviceSelector().applyDataFrom(config);
-            targetSelectionPanel.getSimulatorSelector().applyDataFrom(config);
+            RoboVmRunConfigurationOptions options = config.getOptions();
+            modulePicker.applyDataFrom(config.getProject(), IOSTarget.TYPE::equals, options);
+            targetSelectionPanel.getDeviceSelector().applyDataFrom(options);
+            targetSelectionPanel.getSimulatorSelector().applyDataFrom(options);
             targetSelectionPanel.setTargetType(config.getTargetType());
-            args.setText(config.getArguments());
+            args.setText(options.getArguments());
         } finally {
             updatingData = false;
         }
@@ -66,6 +67,8 @@ public class RoboVmIOSRunConfigurationSettingsEditor extends SettingsEditor<Robo
 
     @Override
     protected void applyEditorTo(@NotNull RoboVmRunConfiguration config) throws ConfigurationException {
+        RoboVmRunConfigurationOptions options = config.getOptions();
+
         // validate all data
         targetSelectionPanel.validate();
         modulePicker.validate();
@@ -73,10 +76,10 @@ public class RoboVmIOSRunConfigurationSettingsEditor extends SettingsEditor<Robo
         // save all data
         config.setTargetType(targetSelectionPanel.getTargetType());
         // module
-        config.getOptions().setModule(modulePicker.getSelectedModuleName());
+        options.setModule(modulePicker.getSelectedModuleName());
         // device related
-        targetSelectionPanel.getDeviceSelector().saveDataTo(config);
+        targetSelectionPanel.getDeviceSelector().saveDataTo(options);
         // simulator related
-        targetSelectionPanel.getSimulatorSelector().saveDataTo(config);
+        targetSelectionPanel.getSimulatorSelector().saveDataTo(options);
     }
 }

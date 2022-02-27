@@ -33,7 +33,6 @@ import org.robovm.idea.RoboVmPlugin
 import org.robovm.idea.running.pickers.BasePrimitiveConfig
 import org.robovm.idea.running.pickers.DevicePickerConfig
 import org.robovm.idea.running.pickers.SimulatorPickerConfig
-import org.robovm.idea.running.pickers.WorkingDirectoryPickerConfig
 
 class RoboVmRunConfiguration(private val configurationType: ConfigurationType, name: String,
                              configurationModule: RunConfigurationModule,
@@ -42,40 +41,40 @@ class RoboVmRunConfiguration(private val configurationType: ConfigurationType, n
         RunConfigurationWithSuppressedDefaultDebugAction,
         RunConfigurationWithSuppressedDefaultRunAction,
         RunProfileWithCompileBeforeLaunchOption,
-        BasePrimitiveConfig,
-        SimulatorPickerConfig,
-        DevicePickerConfig,
-        WorkingDirectoryPickerConfig
-{
+        BasePrimitiveConfig {
 
-    enum class TargetType {
-        Simulator, Device, Console
-    }
-
-    // device target picker
-    override var deviceArch: CpuArch? = null
-    override var signingIdentityType: DevicePickerConfig.EntryType? = null
-    override var signingIdentity: String? = null
-    override var provisioningProfileType: DevicePickerConfig.EntryType? = null
-    override var provisioningProfile: String? = null
-
-    // simulator target picker
-    override var simulatorArch: CpuArch? = null
-    override var simulatorType: SimulatorPickerConfig.EntryType? = null
-    override var simulator: String? = null
-    override var simulatorLaunchWatch: Boolean = false
-
-    // working directory config
-    override var workingDirectory: String? = null
+    // TODO: all these are deprecated
+    enum class TargetType { Simulator, Device, Console }
 
     // promote visibility to public
     fun getModuleName(): String = options.module ?: ""
-
     override fun getType(): ConfigurationType = configurationType
-
     var targetType: TargetType? = null
-    var arguments: String? = null
-    var workingDir: String? = null
+
+    // TODO: rework these are just temporal proxies to options
+    val signingIdentity: String?
+        get() = options.signingIdentity
+    val simulatorLaunchWatch: Boolean
+        get() = options.simulatorLaunchWatch
+    val workingDir: String?
+        get() = options.workingDirectory
+    val simulatorType: SimulatorPickerConfig.EntryType?
+        get() = options.simulatorType
+    val simulator: String?
+        get() = options.simulator
+    val provisioningProfileType: DevicePickerConfig.EntryType?
+        get() = options.provisioningProfileType
+    val provisioningProfile: String?
+        get() = options.provisioningProfile
+    val signingIdentityType: DevicePickerConfig.EntryType?
+        get() = options.signingIdentityType
+    val arguments: String?
+        get() = options.arguments
+    val simulatorArch: CpuArch?
+        get() = options.simulatorArch
+    val deviceArch: CpuArch?
+        get() = options.deviceArch
+    // TODO: end of proxies
 
     // these are used to pass information between
     // the compiler, the run configuration and the
@@ -90,20 +89,25 @@ class RoboVmRunConfiguration(private val configurationType: ConfigurationType, n
         setDefaultValues()
     }
 
+    override fun getOptionsClass(): Class<out RunConfigurationOptions> {
+        return RoboVmRunConfigurationOptions::class.java
+    }
+
+    public override fun getOptions(): RoboVmRunConfigurationOptions {
+        return super.getOptions() as RoboVmRunConfigurationOptions
+    }
+
     private fun setDefaultValues() {
         if (type is RoboVmIOSConfigurationType) {
             targetType = TargetType.Device
 
-            setDefaultDevicePickerValues();
-            setDefaultSimulatorPickerValues();
+            options.setDefaultDevicePickerValues();
+            options.setDefaultSimulatorPickerValues();
         } else if (type is RoboVmConsoleConfigurationType) {
             targetType = TargetType.Console
         }
     }
 
-    public override fun getOptions(): ModuleBasedConfigurationOptions {
-        return super.getOptions()
-    }
 
     override fun getValidModules(): Collection<Module> {
         return RoboVmPlugin.getRoboVmModules(configurationModule!!.project)
@@ -125,11 +129,6 @@ class RoboVmRunConfiguration(private val configurationType: ConfigurationType, n
     override fun readExternal(element: Element) {
         super.readExternal(element)
         targetType = valueOf(TargetType::class.java, JDOMExternalizerUtil.readField(element, "targetType"))
-        arguments = JDOMExternalizerUtil.readField(element, "arguments", "")
-        workingDir = JDOMExternalizerUtil.readField(element, "workingDir", "")
-
-        readDevicePickerExternal(element);
-        readSimulatorPickerExternal(element);
         validateAndFix()
     }
 
@@ -137,15 +136,10 @@ class RoboVmRunConfiguration(private val configurationType: ConfigurationType, n
     override fun writeExternal(element: Element) {
         super.writeExternal(element)
         JDOMExternalizerUtil.writeField(element, "targetType", toStringOrNull(targetType))
-        JDOMExternalizerUtil.writeField(element, "arguments", arguments)
-        JDOMExternalizerUtil.writeField(element, "workingDir", workingDir)
-
-        writeDevicePickerExternal(element);
-        writeSimulatorPickerExternal(element);
     }
 
     override fun setModuleName(moduleName: String?) {
-        configurationModule!!.setModuleName(moduleName)
+        options.module = moduleName
     }
 
     /**
@@ -155,8 +149,8 @@ class RoboVmRunConfiguration(private val configurationType: ConfigurationType, n
         if (type is RoboVmIOSConfigurationType) {
             if (targetType != TargetType.Device && targetType != TargetType.Simulator) targetType = TargetType.Device
 
-            validateAndFixDevicePicker();
-            validateAndFixSimulatorPicker();
+            options.validateAndFixDevicePicker();
+            options.validateAndFixSimulatorPicker();
         } else if (type is RoboVmConsoleConfigurationType) {
             // MacOsX console target
 // FIXME: !
