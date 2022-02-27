@@ -16,12 +16,12 @@
  */
 package org.robovm.idea.running.pickers;
 
+import com.intellij.execution.configurations.ModuleBasedConfigurationOptions;
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.project.Project;
 import org.jetbrains.annotations.NotNull;
 import org.robovm.idea.RoboVmPlugin;
-import org.robovm.idea.running.RoboVmRunConfiguration.EntryType;
 
 import javax.swing.*;
 import java.util.List;
@@ -67,11 +67,11 @@ public class ModulePicker implements BaseDecoratorAware {
     }
 
     public void applyDataFrom(Project project, @NotNull Predicate<String> moduleTypePredicate,
-                              ModulePickerConfig config) {
+                              ModuleBasedConfigurationOptions config) {
         try {
             updatingData = true;
             populateModulesIfNeeded(project, moduleTypePredicate);
-            module.setSelectedItem(getModuleDecoratorByName(config.getModuleName()));
+            module.setSelectedItem(getModuleDecoratorByName(config.getModule()));
         } finally {
             updatingData = false;
         }
@@ -82,9 +82,13 @@ public class ModulePicker implements BaseDecoratorAware {
             throw new ConfigurationException("RoboVM module is not specified!");
     }
 
-    public void saveDataTo(@NotNull ModulePickerConfig config) {
+    public void saveDataTo(@NotNull ModuleBasedConfigurationOptions options) {
         // save all data
-        config.setModuleName(Decorator.from(module).name);
+        options.setModule(Decorator.from(module).name);
+    }
+
+    public String getSelectedModuleName() {
+        return Decorator.from(module).name;
     }
 
     private void populateModulesIfNeeded(@NotNull Project project, @NotNull Predicate<String> targetTypePredicate) {
@@ -102,16 +106,15 @@ public class ModulePicker implements BaseDecoratorAware {
 
     private ModuleNameDecorator getModuleDecoratorByName(String name) {
         // validate if module is known
-        return getMatchingDecorator(EntryType.ID, name, (ModuleNameDecorator) module.getSelectedItem(),
-                null, null, roboVmModules);
+        return getMatchingDecorator(name, (ModuleNameDecorator) module.getSelectedItem(), roboVmModules);
     }
 
     /**
      * decorator for module
      */
-    private static class ModuleNameDecorator extends Decorator<Module> {
+    private static class ModuleNameDecorator extends Decorator<Module, Void> {
         ModuleNameDecorator(Module module) {
-            super(module, module.getName(), module.getName(), EntryType.ID);
+            super(module, module.getName(), module.getName(), null);
         }
 
         @Override

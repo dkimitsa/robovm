@@ -18,7 +18,7 @@ package org.robovm.idea.running.pickers;
 
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.options.ConfigurationException;
-import org.robovm.idea.running.RoboVmRunConfiguration.TargetType;
+import org.robovm.idea.running.RoboVmRunConfiguration;
 
 import javax.swing.*;
 
@@ -49,12 +49,13 @@ public class IOSTargetSelectionPanel {
         return simulatorRadioButton;
     }
 
-    public TargetType getTargetType() {
-        return (attachedDeviceRadioButton.isSelected()) ? TargetType.Device : TargetType.Simulator;
+    public RoboVmRunConfiguration.TargetType getTargetType() {
+        return (attachedDeviceRadioButton.isSelected()) ? RoboVmRunConfiguration.TargetType.Device
+                : RoboVmRunConfiguration.TargetType.Simulator;
     }
 
-    public void setTargetType(TargetType type) {
-        attachedDeviceRadioButton.setSelected(type == TargetType.Device);
+    public void setTargetType(RoboVmRunConfiguration.TargetType type) {
+        attachedDeviceRadioButton.setSelected(type == RoboVmRunConfiguration.TargetType.Device);
     }
 
     public void moduleChanged(Module module) {

@@ -19,7 +19,8 @@ package org.robovm.idea.running;
 import org.robovm.compiler.target.ios.DeviceType;
 import org.robovm.compiler.target.ios.ProvisioningProfile;
 import org.robovm.compiler.target.ios.SigningIdentity;
-import org.robovm.idea.running.RoboVmRunConfiguration.EntryType;
+import org.robovm.idea.running.pickers.DevicePickerConfig;
+import org.robovm.idea.running.pickers.SimulatorPickerConfig;
 
 public final class RoboVmRunConfigurationUtils {
     /**
@@ -28,15 +29,11 @@ public final class RoboVmRunConfigurationUtils {
     public static SigningIdentity getIdentity(RoboVmRunConfiguration config) {
         SigningIdentity result;
         String signingId = config.getSigningIdentity();
-        EntryType entryType = config.getSigningIdentityType();
+        DevicePickerConfig.EntryType entryType = config.getSigningIdentityType();
 
         if (config.getSigningIdentityType() == null) {
-            // legacy, lookup by name
-            if (!RoboVmRunConfiguration.AUTO_SIGNING_IDENTITY.equals(config.getSigningIdentity()))
-                result =  SigningIdentity.find(SigningIdentity.list(), signingId);
-            else
-                result = null; // auto
-        } else if (entryType == EntryType.ID) {
+            result = null; // auto
+        } else if (entryType == DevicePickerConfig.EntryType.ID) {
             // lookup by id/footprint
             result = SigningIdentity.find(SigningIdentity.list(), signingId);
         } else {
@@ -49,14 +46,10 @@ public final class RoboVmRunConfigurationUtils {
     public static ProvisioningProfile getProvisioningProfile(RoboVmRunConfiguration config) {
         ProvisioningProfile result;
         String profile = config.getProvisioningProfile();
-        EntryType entryType = config.getProvisioningProfileType();
+        DevicePickerConfig.EntryType entryType = config.getProvisioningProfileType();
         if (entryType == null) {
-            // legacy, lookup by profile name
-            if (!RoboVmRunConfiguration.AUTO_PROVISIONING_PROFILE.equals(profile))
-                result = ProvisioningProfile.find(ProvisioningProfile.list(), profile);
-            else
-                result = null; // auto
-        } else if (entryType == EntryType.ID) {
+            result = null; // auto
+        } else if (entryType == DevicePickerConfig.EntryType.ID) {
             // lookup by udid
             result = ProvisioningProfile.find(ProvisioningProfile.list(), profile);
         } else {
@@ -69,12 +62,10 @@ public final class RoboVmRunConfigurationUtils {
     public static DeviceType getSimulator(RoboVmRunConfiguration config) {
         DeviceType result;
         String simulator = config.getSimulator();
-        EntryType entryType = config.getSimulatorType();
+        SimulatorPickerConfig.EntryType entryType = config.getSimulatorType();
         if (entryType == null) {
             // legacy, lookup by simulator name
-            result = DeviceType.listDeviceTypes().stream()
-                    .filter(t -> t.getDeviceName().equals(simulator) && t.getVersion().versionCode == config.getSimulatorSdk())
-                    .findAny().orElse(null);
+            result = null;
         } else {
             switch (entryType) {
                 case ID:
@@ -82,11 +73,11 @@ public final class RoboVmRunConfigurationUtils {
                     result = DeviceType.listDeviceTypes().stream()
                             .filter(t -> t.getUdid().equals(simulator)).findAny().orElse(null);
                     break;
-                case AUTO:
+                case AUTO_IPHONE:
                     // auto iPhone
                     result = DeviceType.getBestDeviceType(DeviceType.DeviceFamily.iPhone);
                     break;
-                case AUTO2:
+                case AUTO_IPAD:
                     // auto iPad
                     result = DeviceType.getBestDeviceType(DeviceType.DeviceFamily.iPad);
                     break;

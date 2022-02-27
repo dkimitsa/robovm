@@ -14,233 +14,155 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/gpl-2.0.html>.
  */
-package org.robovm.idea.running;
+package org.robovm.idea.running
 
-import com.intellij.execution.Executor;
-import com.intellij.execution.configurations.*;
-import com.intellij.execution.runners.ExecutionEnvironment;
-import com.intellij.execution.runners.RunConfigurationWithSuppressedDefaultRunAction;
-import com.intellij.openapi.module.Module;
-import com.intellij.openapi.options.SettingsEditor;
-import com.intellij.openapi.util.InvalidDataException;
-import com.intellij.openapi.util.JDOMExternalizerUtil;
-import com.intellij.openapi.util.WriteExternalException;
-import org.jdom.Element;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.robovm.compiler.AppCompiler;
-import org.robovm.compiler.config.Config;
-import org.robovm.idea.RoboVmPlugin;
-import org.robovm.idea.running.pickers.DevicePickerConfig;
-import org.robovm.idea.running.pickers.ModulePickerConfig;
-import org.robovm.idea.running.pickers.SimulatorPickerConfig;
+import com.intellij.execution.Executor
+import com.intellij.execution.configurations.*
+import com.intellij.execution.runners.ExecutionEnvironment
+import com.intellij.execution.runners.RunConfigurationWithSuppressedDefaultRunAction
+import com.intellij.openapi.module.Module
+import com.intellij.openapi.options.SettingsEditor
+import com.intellij.openapi.util.InvalidDataException
+import com.intellij.openapi.util.JDOMExternalizerUtil
+import com.intellij.openapi.util.WriteExternalException
+import org.jdom.Element
+import org.robovm.compiler.AppCompiler
+import org.robovm.compiler.config.Config
+import org.robovm.compiler.config.CpuArch
+import org.robovm.idea.RoboVmPlugin
+import org.robovm.idea.running.pickers.BasePrimitiveConfig
+import org.robovm.idea.running.pickers.DevicePickerConfig
+import org.robovm.idea.running.pickers.SimulatorPickerConfig
+import org.robovm.idea.running.pickers.WorkingDirectoryPickerConfig
 
-import java.util.Collection;
-import java.util.List;
-
-public class RoboVmRunConfiguration extends ModuleBasedConfiguration<RunConfigurationModule, Element> implements
-        RunConfigurationWithSuppressedDefaultDebugAction, RunConfigurationWithSuppressedDefaultRunAction,
+class RoboVmRunConfiguration(private val configurationType: ConfigurationType, name: String,
+                             configurationModule: RunConfigurationModule,
+                             factory: ConfigurationFactory)
+    : ModuleBasedConfiguration<RunConfigurationModule, Element>(name, configurationModule, factory),
+        RunConfigurationWithSuppressedDefaultDebugAction,
+        RunConfigurationWithSuppressedDefaultRunAction,
         RunProfileWithCompileBeforeLaunchOption,
+        BasePrimitiveConfig,
         SimulatorPickerConfig,
         DevicePickerConfig,
-        ModulePickerConfig
+        WorkingDirectoryPickerConfig
 {
-    public static final String AUTO_PROVISIONING_PROFILE = "Auto";
 
-    public enum TargetType {
-        Simulator,
-        Device,
-        Console
+    enum class TargetType {
+        Simulator, Device, Console
     }
 
-    // Specifies mode of signing identity, provisioning profile or simulator entry
-    // null if legacy
-    public enum EntryType {
-        ID,     // corresponding *name field contains identifier
-        AUTO,   // auto (signing identity, provisioning profile or iphone sim)
-        AUTO2   // auto iPad simulator
-    }
+    // device target picker
+    override var deviceArch: CpuArch? = null
+    override var signingIdentityType: DevicePickerConfig.EntryType? = null
+    override var signingIdentity: String? = null
+    override var provisioningProfileType: DevicePickerConfig.EntryType? = null
+    override var provisioningProfile: String? = null
 
-    private TargetType targetType;
-    private final DevicePickerConfig.Bucket devicePickerConfigBucket = new DevicePickerConfig.Bucket();
-    private final SimulatorPickerConfig.Bucket simulatorPickerConfigBucket = new SimulatorPickerConfig.Bucket();
+    // simulator target picker
+    override var simulatorArch: CpuArch? = null
+    override var simulatorType: SimulatorPickerConfig.EntryType? = null
+    override var simulator: String? = null
+    override var simulatorLaunchWatch: Boolean = false
 
-    @Override
-    public DevicePickerConfig.Bucket devicePickerBucket() {
-        return devicePickerConfigBucket;
-    }
+    // working directory config
+    override var workingDirectory: String? = null
 
-    @Override
-    public SimulatorPickerConfig.Bucket simulatorPickerBucket() {
-        return simulatorPickerConfigBucket;
-    }
+    // promote visibility to public
+    fun getModuleName(): String = options.module ?: ""
 
+    override fun getType(): ConfigurationType = configurationType
 
-    private String arguments;
-    private String workingDir;
+    var targetType: TargetType? = null
+    var arguments: String? = null
+    var workingDir: String? = null
 
     // these are used to pass information between
     // the compiler, the run configuration and the
     // runner. They are not persisted.
-    private boolean isDebug;
-    private Config config;
-    private int debugPort;
-    private AppCompiler compiler;
-    private ConfigurationType type;
-    private List<String> programArguments;
+    var isDebug = false
+    var config: Config? = null
+    var debugPort = 0
+    var compiler: AppCompiler? = null
+    var programArguments: List<String>? = null
 
-    public RoboVmRunConfiguration(ConfigurationType type, String name, RunConfigurationModule configurationModule, ConfigurationFactory factory) {
-        super(name, configurationModule, factory);
-        this.type = type;
-        this.setDefaultValues();
+    init {
+        setDefaultValues()
     }
 
-    private void setDefaultValues() {
-        if (type instanceof RoboVmIOSConfigurationType) {
-            targetType = TargetType.Device;
+    private fun setDefaultValues() {
+        if (type is RoboVmIOSConfigurationType) {
+            targetType = TargetType.Device
 
             setDefaultDevicePickerValues();
             setDefaultSimulatorPickerValues();
-        } else if (type instanceof RoboVmConsoleConfigurationType) {
-            targetType = TargetType.Console;
+        } else if (type is RoboVmConsoleConfigurationType) {
+            targetType = TargetType.Console
         }
     }
 
-    @Override
-    public Collection<Module> getValidModules() {
-        return RoboVmPlugin.getRoboVmModules(getConfigurationModule().getProject());
+    public override fun getOptions(): ModuleBasedConfigurationOptions {
+        return super.getOptions()
     }
 
-    @NotNull
-    @Override
-    public SettingsEditor<? extends RunConfiguration> getConfigurationEditor() {
-        if (type instanceof RoboVmIOSConfigurationType) {
-            return new RoboVmIOSRunConfigurationSettingsEditor();
+    override fun getValidModules(): Collection<Module> {
+        return RoboVmPlugin.getRoboVmModules(configurationModule!!.project)
+    }
+
+    override fun getConfigurationEditor(): SettingsEditor<out RunConfiguration?> {
+        return if (type is RoboVmIOSConfigurationType) {
+            RoboVmIOSRunConfigurationSettingsEditor()
         } else {
-            return new RoboVmConsoleRunConfigurationSettingsEditor();
+            RoboVmConsoleRunConfigurationSettingsEditor()
         }
     }
 
-    @Nullable
-    @Override
-    public RunProfileState getState(@NotNull Executor executor, @NotNull ExecutionEnvironment environment) {
-        return new RoboVmRunProfileState(environment);
+    override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
+        return RoboVmRunProfileState(environment)
     }
 
-    @Override
-    public void readExternal(@NotNull Element element) throws InvalidDataException {
-        super.readExternal(element);
-
-        targetType = valueOf(TargetType.class, JDOMExternalizerUtil.readField(element, "targetType"));
-        arguments = JDOMExternalizerUtil.readField(element, "arguments", "");
-        workingDir = JDOMExternalizerUtil.readField(element, "workingDir", "");
+    @Throws(InvalidDataException::class)
+    override fun readExternal(element: Element) {
+        super.readExternal(element)
+        targetType = valueOf(TargetType::class.java, JDOMExternalizerUtil.readField(element, "targetType"))
+        arguments = JDOMExternalizerUtil.readField(element, "arguments", "")
+        workingDir = JDOMExternalizerUtil.readField(element, "workingDir", "")
 
         readDevicePickerExternal(element);
         readSimulatorPickerExternal(element);
-        validateAndFix();
+        validateAndFix()
     }
 
-    @Override
-    public void writeExternal(@NotNull Element element) throws WriteExternalException {
-        super.writeExternal(element);
+    @Throws(WriteExternalException::class)
+    override fun writeExternal(element: Element) {
+        super.writeExternal(element)
+        JDOMExternalizerUtil.writeField(element, "targetType", toStringOrNull(targetType))
+        JDOMExternalizerUtil.writeField(element, "arguments", arguments)
+        JDOMExternalizerUtil.writeField(element, "workingDir", workingDir)
 
-        JDOMExternalizerUtil.writeField(element, "targetType", toStringOrNull(targetType));
-        JDOMExternalizerUtil.writeField(element, "arguments", arguments);
-        JDOMExternalizerUtil.writeField(element, "workingDir", workingDir);
         writeDevicePickerExternal(element);
         writeSimulatorPickerExternal(element);
     }
 
-    @Override
-    public String getModuleName() {
-        return getConfigurationModule().getModuleName();
-    }
-
-    @Override
-    public void setModuleName(String moduleName) {
-        getConfigurationModule().setModuleName(moduleName);
-    }
-
-    public boolean isDebug() {
-        return isDebug;
-    }
-
-    public void setDebug(boolean isDebug) {
-        this.isDebug = isDebug;
-    }
-
-    public Config getConfig() {
-        return config;
-    }
-
-    public void setConfig(Config config) {
-        this.config = config;
-    }
-
-    public void setDebugPort(int debugPort) {
-        this.debugPort = debugPort;
-    }
-
-    public int getDebugPort() {
-        return debugPort;
-    }
-
-    public void setCompiler(AppCompiler compiler) {
-        this.compiler = compiler;
-    }
-
-    public AppCompiler getCompiler() {
-        return compiler;
-    }
-
-    public TargetType getTargetType() {
-        return targetType;
-    }
-
-    public void setTargetType(TargetType targetType) {
-        this.targetType = targetType;
-    }
-
-    public String getArguments() {
-        return arguments;
-    }
-
-    public void setArguments(String arguments) {
-        this.arguments = arguments;
-    }
-
-    public void setProgramArguments(List<String> programArguments) {
-        this.programArguments = programArguments;
-    }
-
-    public List<String> getProgramArguments() {
-        return programArguments;
-    }
-
-    public String getWorkingDir() {
-        return workingDir;
-    }
-
-    public void setWorkingDir(String workingDir) {
-        this.workingDir = workingDir;
+    override fun setModuleName(moduleName: String?) {
+        configurationModule!!.setModuleName(moduleName)
     }
 
     /**
      * validates possibly wrong values and tries to fix
      */
-    private void validateAndFix() {
-        if (type instanceof RoboVmIOSConfigurationType) {
-            if (targetType != TargetType.Device && targetType != TargetType.Simulator)
-                targetType = TargetType.Device;
+    private fun validateAndFix() {
+        if (type is RoboVmIOSConfigurationType) {
+            if (targetType != TargetType.Device && targetType != TargetType.Simulator) targetType = TargetType.Device
 
             validateAndFixDevicePicker();
             validateAndFixSimulatorPicker();
-        } else if (type instanceof RoboVmConsoleConfigurationType) {
+        } else if (type is RoboVmConsoleConfigurationType) {
             // MacOsX console target
 // FIXME: !
 //            if (deviceArch != CpuArch.x86_64 && deviceArch != DeviceType.DEFAULT_HOST_ARCH)
 //                deviceArch = DeviceType.DEFAULT_HOST_ARCH;
-            targetType = TargetType.Console;
+            targetType = TargetType.Console
         }
     }
 }

@@ -22,14 +22,11 @@ import org.robovm.compiler.config.Arch;
 import org.robovm.compiler.config.CpuArch;
 import org.robovm.compiler.target.ios.ProvisioningProfile;
 import org.robovm.compiler.target.ios.SigningIdentity;
-import org.robovm.idea.running.RoboVmRunConfiguration.EntryType;
+import org.robovm.idea.running.pickers.DevicePickerConfig.EntryType;
 
 import javax.swing.*;
 import java.util.List;
 import java.util.stream.Collectors;
-
-import static org.robovm.idea.running.RoboVmRunConfiguration.AUTO_PROVISIONING_PROFILE;
-import static org.robovm.idea.running.RoboVmRunConfiguration.AUTO_SIGNING_IDENTITY;
 
 /**
  * iOS device selection widget, provides two combo boxes:
@@ -38,6 +35,7 @@ import static org.robovm.idea.running.RoboVmRunConfiguration.AUTO_SIGNING_IDENTI
  * Picks signing identities and fill the combo-box
  */
 public class IOSDevicePicker implements BaseDecoratorAware {
+    private static final String TITLE_AUTO = "Auto";
     private static final CpuArch[] DEVICE_ARCHS = {CpuArch.arm64, CpuArch.thumbv7};
 
     private JComboBox<SigningIdentityDecorator> signingIdentity;
@@ -48,9 +46,7 @@ public class IOSDevicePicker implements BaseDecoratorAware {
 
     // copy of data that is time-consuming to fetch (fetched only once when dialog is created)
     private List<ProvisioningProfileDecorator> provisioningProfiles;
-    private final ProvisioningProfileDecorator provisioningProfileAuto = new ProvisioningProfileDecorator(AUTO_PROVISIONING_PROFILE, EntryType.AUTO);
     private List<SigningIdentityDecorator> signingIdentities;
-    private final SigningIdentityDecorator signingIdentityAuto = new SigningIdentityDecorator(AUTO_SIGNING_IDENTITY, EntryType.AUTO);
 
     // true if editor internally updating data and listeners should ignore the events
     private boolean updatingData;
@@ -77,11 +73,14 @@ public class IOSDevicePicker implements BaseDecoratorAware {
     public void validate() throws ConfigurationException {
         // validate all data
         if (deviceArch.getSelectedItem() == null)
-            throw buildConfigurationException("Device architecture is not specified!", () -> deviceArch.setSelectedItem(Arch.arm64));
+            throw buildConfigurationException("Device architecture is not specified!",
+                    () -> deviceArch.setSelectedItem(Arch.arm64));
         if (signingIdentity.getSelectedItem() == null)
-            throw buildConfigurationException("Signing identity is not specified!", () -> signingIdentity.setSelectedItem(signingIdentityAuto));
+            throw buildConfigurationException("Signing identity is not specified!",
+                    () -> signingIdentity.setSelectedItem(SigningIdentityDecorator.Auto));
         if (provisioningProfile.getSelectedItem() == null)
-            throw buildConfigurationException("Provisioning profile is not specified!", () -> provisioningProfile.setSelectedItem(provisioningProfileAuto));
+            throw buildConfigurationException("Provisioning profile is not specified!",
+                    () -> provisioningProfile.setSelectedItem(ProvisioningProfileDecorator.Auto));
     }
 
     public void saveDataTo(@NotNull DevicePickerConfig config) {
@@ -105,7 +104,7 @@ public class IOSDevicePicker implements BaseDecoratorAware {
                 .collect(Collectors.toList());
 
         signingIdentity.removeAllItems();
-        signingIdentity.addItem(signingIdentityAuto);
+        signingIdentity.addItem(SigningIdentityDecorator.Auto);
         this.signingIdentities.forEach(t -> signingIdentity.addItem(t));
     }
 
@@ -115,30 +114,38 @@ public class IOSDevicePicker implements BaseDecoratorAware {
                 .collect(Collectors.toList());
 
         provisioningProfile.removeAllItems();
-        provisioningProfile.addItem(provisioningProfileAuto);
+        provisioningProfile.addItem(ProvisioningProfileDecorator.Auto);
         this.provisioningProfiles.forEach(t -> provisioningProfile.addItem(t));
     }
 
     private SigningIdentityDecorator getSigningIdentityFromConfig(DevicePickerConfig config) {
-        String name = config.getSigningIdentity();
-        return getMatchingDecorator(config.getSigningIdentityType(), name,
-                (SigningIdentityDecorator) signingIdentity.getSelectedItem(),
-                AUTO_SIGNING_IDENTITY, signingIdentityAuto, null,
-                signingIdentities, t -> Decorator.matchesName(t, name));
+        if (config.getSigningIdentityType() == EntryType.AUTO) {
+            return SigningIdentityDecorator.Auto;
+        } else {
+            String id = config.getSigningIdentity();
+            return getMatchingDecorator(id,
+                    (SigningIdentityDecorator) signingIdentity.getSelectedItem(),
+                    signingIdentities);
+        }
     }
 
     private ProvisioningProfileDecorator getProvisioningProfileFromConfig(DevicePickerConfig config) {
-        String name = config.getProvisioningProfile();
-        return getMatchingDecorator(config.getProvisioningProfileType(), name,
-                (ProvisioningProfileDecorator) provisioningProfile.getSelectedItem(),
-                AUTO_PROVISIONING_PROFILE, provisioningProfileAuto, null,
-                provisioningProfiles, t -> Decorator.matchesName(t, name));
+        if (config.getProvisioningProfileType() == EntryType.AUTO) {
+            return ProvisioningProfileDecorator.Auto;
+        } else {
+            String id = config.getProvisioningProfile();
+            return getMatchingDecorator(id,
+                    (ProvisioningProfileDecorator) provisioningProfile.getSelectedItem(),
+                    provisioningProfiles);
+        }
     }
 
     /**
      * decorator for singing identity
      */
-    private static class SigningIdentityDecorator extends Decorator<SigningIdentity> {
+    private static class SigningIdentityDecorator extends Decorator<SigningIdentity, EntryType> {
+        static final SigningIdentityDecorator Auto = new SigningIdentityDecorator(TITLE_AUTO, EntryType.AUTO);
+
         SigningIdentityDecorator(String title, EntryType entryType) {
             super(null, null, title, entryType);
         }
@@ -156,7 +163,8 @@ public class IOSDevicePicker implements BaseDecoratorAware {
     /**
      * decorator for provisioning profile
      */
-    private static class ProvisioningProfileDecorator extends Decorator<ProvisioningProfile> {
+    private static class ProvisioningProfileDecorator extends Decorator<ProvisioningProfile, EntryType> {
+        static final ProvisioningProfileDecorator Auto = new ProvisioningProfileDecorator(TITLE_AUTO, EntryType.AUTO);
         ProvisioningProfileDecorator(String title, EntryType entryType) {
             super(null, null, title, entryType);
         }

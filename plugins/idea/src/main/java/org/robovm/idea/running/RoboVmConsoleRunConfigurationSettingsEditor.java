@@ -47,7 +47,7 @@ public class RoboVmConsoleRunConfigurationSettingsEditor extends SettingsEditor<
 
     @Override
     protected void resetEditorFrom(@NotNull RoboVmRunConfiguration config) {
-        modulePicker.applyDataFrom(config.getProject(), FrameworkTarget::matches, config);
+        modulePicker.applyDataFrom(config.getProject(), FrameworkTarget::matches, config.getOptions());
 
         // populate arch
         deviceArch.removeAllItems();

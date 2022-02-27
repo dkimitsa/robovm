@@ -24,7 +24,7 @@ import org.robovm.compiler.config.Config;
 import org.robovm.compiler.config.CpuArch;
 import org.robovm.compiler.target.ios.DeviceType;
 import org.robovm.idea.RoboVmPlugin;
-import org.robovm.idea.running.RoboVmRunConfiguration.EntryType;
+import org.robovm.idea.running.pickers.SimulatorPickerConfig.EntryType;
 
 import javax.swing.*;
 import java.util.List;
@@ -40,8 +40,8 @@ import java.util.stream.Collectors;
 public class IOSSimulatorPicker implements BaseDecoratorAware {
     private static final CpuArch[] SIMULATOR_ARCHS = {CpuArch.x86_64, CpuArch.x86, CpuArch.arm64};
 
-    public static final String AUTO_SIMULATOR_IPHONE_TITLE = "Auto (prefers '" + DeviceType.PREFERRED_IPHONE_SIM_NAME + "')";
-    public static final String AUTO_SIMULATOR_IPAD_TITLE = "Auto (prefers '" + DeviceType.PREFERRED_IPAD_SIM_NAME + "')";
+    private static final String AUTO_SIMULATOR_IPHONE_TITLE = "Auto (prefers '" + DeviceType.PREFERRED_IPHONE_SIM_NAME + "')";
+    private static final String AUTO_SIMULATOR_IPAD_TITLE = "Auto (prefers '" + DeviceType.PREFERRED_IPAD_SIM_NAME + "')";
 
 
     private JComboBox<SimTypeDecorator> simType;
@@ -52,8 +52,6 @@ public class IOSSimulatorPicker implements BaseDecoratorAware {
 
     // copy of data that is time consuming to fetch (fetched only once when dialog is created)
     private List<SimTypeDecorator> simDeviceTypes;
-    private final SimTypeDecorator simulatorAutoIPhone = new SimTypeDecorator(AUTO_SIMULATOR_IPHONE_TITLE, EntryType.AUTO);
-    private final SimTypeDecorator simulatorAutoIPad = new SimTypeDecorator(AUTO_SIMULATOR_IPAD_TITLE, EntryType.AUTO2);
     // true if editor internally updating data and listeners should ignore the events
     private boolean updatingData;
     private boolean moduleHasWatchApp;
@@ -92,7 +90,7 @@ public class IOSSimulatorPicker implements BaseDecoratorAware {
             updatingData = true;
             simType.setSelectedItem(getSimulatorFromConfig(config));
             simArch.setSelectedItem(populateSimulatorArch((SimTypeDecorator) simType.getSelectedItem(), config.getSimulatorArch()));
-            simulatorLaunchedWatch = config.isSimulatorLaunchWatch();
+            simulatorLaunchedWatch = config.getSimulatorLaunchWatch();
             updatePairedWatch();
         } finally {
             updatingData = false;
@@ -102,7 +100,7 @@ public class IOSSimulatorPicker implements BaseDecoratorAware {
     public void validate() throws ConfigurationException {
         // validate all data
         if (simType.getSelectedItem() == null)
-            throw buildConfigurationException("Simulator is not specified!", () -> simType.setSelectedItem(simulatorAutoIPhone));
+            throw buildConfigurationException("Simulator is not specified!", () -> simType.setSelectedItem(SimTypeDecorator.AutoIPhone));
         if (simArch.getSelectedItem() == null)
             throw buildConfigurationException("Simulator architecture is not specified!", () -> simArch.setSelectedIndex(0));
     }
@@ -112,7 +110,6 @@ public class IOSSimulatorPicker implements BaseDecoratorAware {
         config.setSimulatorArch((CpuArch) simArch.getSelectedItem());
         config.setSimulatorType(Decorator.from(simType).entryType);
         config.setSimulator(Decorator.from(simType).id);
-        config.setSimulatorSdk(-1); // legacy, will not be used
         config.setSimulatorLaunchWatch(pairedWatch.isSelected());
     }
 
@@ -120,7 +117,7 @@ public class IOSSimulatorPicker implements BaseDecoratorAware {
         CpuArch result = null;
         simArch.removeAllItems();
         if (simulator != null) {
-            if (simulator == simulatorAutoIPad || simulator == simulatorAutoIPhone) {
+            if (simulator == SimTypeDecorator.AutoIPad || simulator == SimTypeDecorator.AutoIPhone) {
                 // auto simulator, use default OS arch (x86_64 or arm64 on m1)is allowed, if arch doesn't match -- override
                 simArch.addItem(DeviceType.DEFAULT_HOST_ARCH);
                 result = DeviceType.DEFAULT_HOST_ARCH;
@@ -146,18 +143,24 @@ public class IOSSimulatorPicker implements BaseDecoratorAware {
                 .collect(Collectors.toList());
 
         simType.removeAllItems();
-        simType.addItem(simulatorAutoIPhone);
-        simType.addItem(simulatorAutoIPad);
+        simType.addItem(SimTypeDecorator.AutoIPhone);
+        simType.addItem(SimTypeDecorator.AutoIPad);
         this.simDeviceTypes.forEach(t -> simType.addItem(t));
     }
 
 
     private SimTypeDecorator getSimulatorFromConfig(SimulatorPickerConfig config) {
-        String name = config.getSimulator();
-        return getMatchingDecorator(config.getSimulatorType(), name,
-                (SimTypeDecorator) simType.getSelectedItem(),
-                null, simulatorAutoIPhone, simulatorAutoIPad,
-                simDeviceTypes, t -> SimTypeDecorator.matchesName(t, config.getSimulator(), config.getSimulatorSdk()));
+        switch (config.getSimulatorType()) {
+            case AUTO_IPHONE:
+                return SimTypeDecorator.AutoIPhone;
+            case AUTO_IPAD:
+                return SimTypeDecorator.AutoIPad;
+            default:
+                return getMatchingDecorator(config.getSimulator(),
+                        (SimTypeDecorator) simType.getSelectedItem(),
+                        simDeviceTypes);
+
+        }
     }
 
     private void updateSimArchs(SimTypeDecorator simulator) {
@@ -180,7 +183,7 @@ public class IOSSimulatorPicker implements BaseDecoratorAware {
             text = "";
         } else {
             visible = true;
-            Decorator<DeviceType> simSelected = Decorator.from(simType);
+            Decorator<DeviceType, EntryType> simSelected = Decorator.from(simType);
             if (simSelected != null && simSelected.entryType == EntryType.ID && simSelected.data.getPair() != null) {
                 // has pair
                 text = "Launch paired: " + simSelected.data.getPair().getDeviceName();
@@ -202,19 +205,16 @@ public class IOSSimulatorPicker implements BaseDecoratorAware {
     /**
      * decorator for simulator type
      */
-    private static class SimTypeDecorator extends Decorator<DeviceType> {
+    private static class SimTypeDecorator extends Decorator<DeviceType, EntryType> {
+        static final SimTypeDecorator AutoIPhone = new SimTypeDecorator(AUTO_SIMULATOR_IPHONE_TITLE, EntryType.AUTO_IPHONE);
+        static final SimTypeDecorator AutoIPad = new SimTypeDecorator(AUTO_SIMULATOR_IPAD_TITLE, EntryType.AUTO_IPAD);
+
         SimTypeDecorator(String title, EntryType entryType) {
             super(null, null, title, entryType);
         }
 
         SimTypeDecorator(DeviceType data) {
             super(data, data.getUdid(), data.getDeviceName(), EntryType.ID);
-        }
-
-        public static boolean matchesName(SimTypeDecorator d, String name, int version) {
-            return d != null && d.data != null &&
-                    d.data.getVersion().versionCode == version &&
-                    d.name != null && d.name.equals(name);
         }
 
         @Override
