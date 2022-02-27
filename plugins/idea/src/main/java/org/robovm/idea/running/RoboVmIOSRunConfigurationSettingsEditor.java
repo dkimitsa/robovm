@@ -20,15 +20,15 @@ import com.intellij.openapi.options.ConfigurationException;
 import com.intellij.openapi.options.SettingsEditor;
 import org.jetbrains.annotations.NotNull;
 import org.robovm.compiler.target.ios.IOSTarget;
-import org.robovm.idea.running.pickers.IOSTargetSelectionPanel;
+import org.robovm.idea.running.pickers.IOSTargetTypePicker;
 import org.robovm.idea.running.pickers.ModulePicker;
 
 import javax.swing.*;
 
-public class RoboVmIOSRunConfigurationSettingsEditor extends SettingsEditor<RoboVmRunConfiguration> {
+public class RoboVmIOSRunConfigurationSettingsEditor extends SettingsEditor<RoboVmIOSRunConfiguration> {
     private JPanel panel;
     private JTextArea args;
-    private IOSTargetSelectionPanel targetSelectionPanel;
+    private IOSTargetTypePicker targetSelectionPanel;
     private ModulePicker modulePicker;
 
     // true if editor internally updating data and listeners should ignore the events
@@ -51,14 +51,14 @@ public class RoboVmIOSRunConfigurationSettingsEditor extends SettingsEditor<Robo
     }
 
     @Override
-    protected void resetEditorFrom(@NotNull RoboVmRunConfiguration config) {
+    protected void resetEditorFrom(@NotNull RoboVmIOSRunConfiguration config) {
         try {
             updatingData = true;
-            RoboVmRunConfigurationOptions options = config.getOptions();
+            RoboVmIOSRunConfigurationOptions options = config.getOptions();
             modulePicker.applyDataFrom(config.getProject(), IOSTarget.TYPE::equals, options);
             targetSelectionPanel.getDeviceSelector().applyDataFrom(options);
             targetSelectionPanel.getSimulatorSelector().applyDataFrom(options);
-            targetSelectionPanel.setTargetType(config.getTargetType());
+            targetSelectionPanel.setTargetType(options.getTargetType());
             args.setText(options.getArguments());
         } finally {
             updatingData = false;
@@ -66,15 +66,15 @@ public class RoboVmIOSRunConfigurationSettingsEditor extends SettingsEditor<Robo
     }
 
     @Override
-    protected void applyEditorTo(@NotNull RoboVmRunConfiguration config) throws ConfigurationException {
-        RoboVmRunConfigurationOptions options = config.getOptions();
+    protected void applyEditorTo(@NotNull RoboVmIOSRunConfiguration config) throws ConfigurationException {
+        RoboVmIOSRunConfigurationOptions options = config.getOptions();
 
         // validate all data
         targetSelectionPanel.validate();
         modulePicker.validate();
 
         // save all data
-        config.setTargetType(targetSelectionPanel.getTargetType());
+        options.setTargetType(targetSelectionPanel.getTargetType());
         // module
         options.setModule(modulePicker.getSelectedModuleName());
         // device related

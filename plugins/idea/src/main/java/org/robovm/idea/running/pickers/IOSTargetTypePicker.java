@@ -18,14 +18,13 @@ package org.robovm.idea.running.pickers;
 
 import com.intellij.openapi.module.Module;
 import com.intellij.openapi.options.ConfigurationException;
-import org.robovm.idea.running.RoboVmRunConfiguration;
 
 import javax.swing.*;
 
 /**
  * Panel that combines simulator and device selection widgets, adds radio buttons to select target type
  */
-public class IOSTargetSelectionPanel {
+public class IOSTargetTypePicker {
     private IOSSimulatorPicker simulatorSelector;
     private IOSDevicePicker deviceSelector;
     private JRadioButton attachedDeviceRadioButton;
@@ -49,13 +48,13 @@ public class IOSTargetSelectionPanel {
         return simulatorRadioButton;
     }
 
-    public RoboVmRunConfiguration.TargetType getTargetType() {
-        return (attachedDeviceRadioButton.isSelected()) ? RoboVmRunConfiguration.TargetType.Device
-                : RoboVmRunConfiguration.TargetType.Simulator;
+    public IOSTargetTypePickerConfig.Target getTargetType() {
+        return (attachedDeviceRadioButton.isSelected()) ? IOSTargetTypePickerConfig.Target.Device
+                : IOSTargetTypePickerConfig.Target.Simulator;
     }
 
-    public void setTargetType(RoboVmRunConfiguration.TargetType type) {
-        attachedDeviceRadioButton.setSelected(type == RoboVmRunConfiguration.TargetType.Device);
+    public void setTargetType(IOSTargetTypePickerConfig.Target type) {
+        attachedDeviceRadioButton.setSelected(type == IOSTargetTypePickerConfig.Target.Device);
     }
 
     public void moduleChanged(Module module) {

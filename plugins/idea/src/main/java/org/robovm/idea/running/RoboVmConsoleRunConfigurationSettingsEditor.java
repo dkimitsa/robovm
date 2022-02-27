@@ -28,11 +28,11 @@ import org.robovm.idea.running.pickers.ModulePicker;
 
 import javax.swing.*;
 
-public class RoboVmConsoleRunConfigurationSettingsEditor extends SettingsEditor<RoboVmRunConfiguration>
+public class RoboVmConsoleRunConfigurationSettingsEditor extends SettingsEditor<RoboVmConsoleRunConfiguration>
         implements BaseDecoratorAware {
     private JPanel panel;
     private JTextArea args;
-    private JComboBox<CpuArch> deviceArch;
+    private JComboBox<CpuArch> targetArch;
     private DirectoryPicker directoryPicker;
     private ModulePicker modulePicker;
 
@@ -46,17 +46,17 @@ public class RoboVmConsoleRunConfigurationSettingsEditor extends SettingsEditor<
     }
 
     @Override
-    protected void resetEditorFrom(@NotNull RoboVmRunConfiguration config) {
-        RoboVmRunConfigurationOptions options = config.getOptions();
+    protected void resetEditorFrom(@NotNull RoboVmConsoleRunConfiguration config) {
+        RoboVmConsoleRunConfigurationOptions options = config.getOptions();
         modulePicker.applyDataFrom(config.getProject(), ConsoleTarget.TYPE::equals, options);
 
         // populate arch
-        deviceArch.removeAllItems();
+        targetArch.removeAllItems();
         if (DeviceType.DEFAULT_HOST_ARCH == CpuArch.arm64)
-            deviceArch.addItem(CpuArch.arm64);
-        deviceArch.addItem(CpuArch.x86_64);
-        if (options.getDeviceArch() == CpuArch.x86_64 || options.getDeviceArch() == DeviceType.DEFAULT_HOST_ARCH)
-            deviceArch.setSelectedItem(options.getDeviceArch());
+            targetArch.addItem(CpuArch.arm64);
+        targetArch.addItem(CpuArch.x86_64);
+        if (options.getTargetArch() == CpuArch.x86_64 || options.getTargetArch() == DeviceType.DEFAULT_HOST_ARCH)
+            targetArch.setSelectedItem(options.getTargetArch());
 
         this.args.setText(options.getArguments());
         String dir = options.getWorkingDirectory();
@@ -67,16 +67,16 @@ public class RoboVmConsoleRunConfigurationSettingsEditor extends SettingsEditor<
     }
 
     @Override
-    protected void applyEditorTo(@NotNull RoboVmRunConfiguration config) throws ConfigurationException {
-        RoboVmRunConfigurationOptions options = config.getOptions();
+    protected void applyEditorTo(@NotNull RoboVmConsoleRunConfiguration config) throws ConfigurationException {
+        RoboVmConsoleRunConfigurationOptions options = config.getOptions();
 
         // validate
         modulePicker.validate();
         directoryPicker.validate();
-        if (deviceArch.getSelectedItem() == null)
-            throw buildConfigurationException("Device architecture is not specified!", () -> deviceArch.setSelectedItem(DeviceType.DEFAULT_HOST_ARCH));
+        if (targetArch.getSelectedItem() == null)
+            throw buildConfigurationException("Device architecture is not specified!", () -> targetArch.setSelectedItem(DeviceType.DEFAULT_HOST_ARCH));
 
-        options.setDeviceArch((CpuArch) deviceArch.getSelectedItem());
+        options.setTargetArch((CpuArch) targetArch.getSelectedItem());
         options.setArguments(args.getText());
         options.setWorkingDirectory(directoryPicker.getSelectedDirectory());
     }
