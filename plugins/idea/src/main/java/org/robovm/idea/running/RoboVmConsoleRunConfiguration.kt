@@ -30,33 +30,13 @@ import org.robovm.idea.RoboVmPlugin
 import org.robovm.idea.running.pickers.BasePrimitiveConfig
 
 class RoboVmConsoleRunConfiguration(name: String, project: Project, factory: ConfigurationFactory)
-    : ModuleBasedConfiguration<RunConfigurationModule, Element>(name, RunConfigurationModule(project), factory),
-        RunConfigurationWithSuppressedDefaultDebugAction,
-        RunConfigurationWithSuppressedDefaultRunAction,
-        RunProfileWithCompileBeforeLaunchOption,
-        BasePrimitiveConfig {
-
-    // promote visibility to public
-    fun getModuleName(): String = options.module ?: ""
-    override fun getType(): ConfigurationType = super.getType()
-
+    : RoboVmBaseRunConfiguration(name, project, factory) {
     // TODO: rework these are just temporal proxies to options
     val workingDir: String?
         get() = options.workingDirectory
     val arguments: String?
         get() = options.arguments
     // TODO: end of proxies
-
-    // TODO: FIXME: CONSIDER REMOVING or moving to RunState
-    // these are used to pass information between
-    // the compiler, the run configuration and the
-    // runner. They are not persisted.
-    var isDebug = false
-    var config: Config? = null
-    var debugPort = 0
-    var compiler: AppCompiler? = null
-    var programArguments: List<String>? = null
-    // TODO: FIXME: end of
 
     override fun getOptionsClass(): Class<out RunConfigurationOptions> {
         return RoboVmConsoleRunConfigurationOptions::class.java
@@ -74,8 +54,8 @@ class RoboVmConsoleRunConfiguration(name: String, project: Project, factory: Con
         return RoboVmConsoleRunConfigurationSettingsEditor()
     }
 
-    override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
-        return RoboVmRunProfileState(environment)
+    override fun getState(executor: Executor, environment: ExecutionEnvironment): RoboVmConsoleRunProfileState {
+        return RoboVmConsoleRunProfileState(environment)
     }
 
     override fun setModuleName(moduleName: String?) {

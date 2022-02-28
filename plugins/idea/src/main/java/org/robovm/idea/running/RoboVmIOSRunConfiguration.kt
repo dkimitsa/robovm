@@ -34,15 +34,7 @@ import org.robovm.idea.running.pickers.DevicePickerConfig
 import org.robovm.idea.running.pickers.SimulatorPickerConfig
 
 class RoboVmIOSRunConfiguration(name: String, project: Project, factory: ConfigurationFactory)
-    : ModuleBasedConfiguration<RunConfigurationModule, Element>(name, RunConfigurationModule(project), factory),
-        RunConfigurationWithSuppressedDefaultDebugAction,
-        RunConfigurationWithSuppressedDefaultRunAction,
-        RunProfileWithCompileBeforeLaunchOption,
-        BasePrimitiveConfig {
-
-    // promote visibility to public
-    fun getModuleName(): String = options.module ?: ""
-    override fun getType(): ConfigurationType = super.getType()
+    : RoboVmBaseRunConfiguration(name, project, factory) {
 
     // TODO: rework these are just temporal proxies to options
     val signingIdentity: String?
@@ -69,15 +61,6 @@ class RoboVmIOSRunConfiguration(name: String, project: Project, factory: Configu
         get() = options.deviceArch
     // TODO: end of proxies
 
-    // these are used to pass information between
-    // the compiler, the run configuration and the
-    // runner. They are not persisted.
-    var isDebug = false
-    var config: Config? = null
-    var debugPort = 0
-    var compiler: AppCompiler? = null
-    var programArguments: List<String>? = null
-
     init {
         setDefaultValues()
     }
@@ -103,8 +86,8 @@ class RoboVmIOSRunConfiguration(name: String, project: Project, factory: Configu
         return RoboVmIOSRunConfigurationSettingsEditor()
     }
 
-    override fun getState(executor: Executor, environment: ExecutionEnvironment): RunProfileState {
-        return RoboVmRunProfileState(environment)
+    override fun getState(executor: Executor, environment: ExecutionEnvironment): RoboVmIOSRunProfileState {
+        return RoboVmIOSRunProfileState(environment)
     }
 
     @Throws(InvalidDataException::class)

@@ -60,6 +60,42 @@ public final class RoboVmRunConfigurationUtils {
     }
 
     public static DeviceType getSimulator(RoboVmRunConfiguration config) {
+        // FIXME: works with legacy run configuration
+        // TODO: FIXME: these two methods `getSimulator` to be reworked into single one
+
+        DeviceType result;
+        String simulator = config.getSimulator();
+        SimulatorPickerConfig.EntryType entryType = config.getSimulatorType();
+        if (entryType == null) {
+            // legacy, lookup by simulator name
+            result = null;
+        } else {
+            switch (entryType) {
+                case ID:
+                    // lookup by udid
+                    result = DeviceType.listDeviceTypes().stream()
+                            .filter(t -> t.getUdid().equals(simulator)).findAny().orElse(null);
+                    break;
+                case AUTO_IPHONE:
+                    // auto iPhone
+                    result = DeviceType.getBestDeviceType(DeviceType.DeviceFamily.iPhone);
+                    break;
+                case AUTO_IPAD:
+                    // auto iPad
+                    result = DeviceType.getBestDeviceType(DeviceType.DeviceFamily.iPad);
+                    break;
+                default:
+                    result = null;
+            }
+        }
+
+        return result;
+    }
+
+    public static DeviceType getSimulator(SimulatorPickerConfig config) {
+        // FIXME: works with new Simulator picker config
+        // TODO: FIXME: these two methods `getSimulator` to be reworked into single one
+
         DeviceType result;
         String simulator = config.getSimulator();
         SimulatorPickerConfig.EntryType entryType = config.getSimulatorType();
