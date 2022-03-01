@@ -46,8 +46,11 @@ import org.robovm.compiler.target.ios.SigningIdentity;
 import org.robovm.idea.RoboVmPlugin;
 import org.robovm.idea.actions.CreateFrameworkAction;
 import org.robovm.idea.actions.CreateIpaAction;
-import org.robovm.idea.running.RoboVmRunConfiguration;
+import org.robovm.idea.running.RoboVmBaseRunConfiguration;
+import org.robovm.idea.running.RoboVmConsoleRunConfiguration;
+import org.robovm.idea.running.RoboVmIOSRunConfiguration;
 import org.robovm.idea.running.RoboVmRunConfigurationUtils;
+import org.robovm.idea.running.pickers.IOSTargetTypePickerConfig;
 import org.robovm.idea.utils.RoboFileUtils;
 
 import java.io.File;
@@ -184,7 +187,7 @@ public class RoboVmCompileTask {
         return true;
     }
 
-    public static boolean compileForRunConfiguration(Project project, ProgressIndicator progress, final RoboVmRunConfiguration runConfig) {
+    public static boolean compileForRunConfiguration(Project project, ProgressIndicator progress, final RoboVmBaseRunConfiguration runConfig) {
         try {
             progress.pushState();
             RoboVmPlugin.focusToolWindow(project);
@@ -208,21 +211,28 @@ public class RoboVmCompileTask {
             // set OS and arch
             OS os;
             Arch arch;
-            if (runConfig.getTargetType() == RoboVmRunConfiguration.TargetType.Device) {
-                os = OS.ios;
-                arch = new Arch(runConfig.getDeviceArch());
-            } else if (runConfig.getTargetType() == RoboVmRunConfiguration.TargetType.Simulator) {
-                os = OS.ios;
-                arch = new Arch(runConfig.getSimulatorArch(), Environment.Simulator);
-            } else {
+            String arguments;
+            if (runConfig instanceof RoboVmIOSRunConfiguration) {
+                RoboVmIOSRunConfiguration iosConfig = (RoboVmIOSRunConfiguration) runConfig;
+                if (iosConfig.getTargetType() == IOSTargetTypePickerConfig.Target.Device) {
+                    os = OS.ios;
+                    arch = new Arch(iosConfig.getDeviceArch());
+                } else {
+                    os = OS.ios;
+                    arch = new Arch(iosConfig.getSimulatorArch(), Environment.Simulator);
+                }
+                arguments = iosConfig.getArguments();
+            } else if (runConfig instanceof RoboVmConsoleRunConfiguration){
                 os = OS.getDefaultOS();
-                arch = new Arch(runConfig.getDeviceArch());
-            }
+                arch = new Arch(((RoboVmConsoleRunConfiguration)runConfig).getTargetArch());
+                arguments = ((RoboVmConsoleRunConfiguration)runConfig).getArguments();
+
+            } else throw new IllegalArgumentException("Unsupported configuration " + runConfig.getClass().getSimpleName());
             builder.os(os);
             builder.arch(arch);
 
             // set the plugin args
-            List<String> args = splitArgs(runConfig.getArguments());
+            List<String> args = splitArgs(arguments);
             applyPluginArguments(args, builder);
 
             // set build dir and install dir, pattern
@@ -371,7 +381,7 @@ public class RoboVmCompileTask {
         }
     }
 
-    private static void configureDebugging(Config.Builder builder, RoboVmRunConfiguration runConfig, Module module) {
+    private static void configureDebugging(Config.Builder builder, RoboVmBaseRunConfiguration runConfig, Module module) {
         // setup debug configuration if necessary
         if (runConfig.isDebug()) {
             Set<String> sourcesPaths = new HashSet<>();
@@ -405,18 +415,21 @@ public class RoboVmCompileTask {
         }
     }
 
-    private static void configureTarget(Config.Builder builder, RoboVmRunConfiguration runConfig) {
-        if (runConfig.getTargetType() == RoboVmRunConfiguration.TargetType.Device) {
-            // configure device build
-            builder.targetType(IOSTarget.TYPE);
-            builder.iosSignIdentity(RoboVmRunConfigurationUtils.getIdentity(runConfig));
-            builder.iosProvisioningProfile(RoboVmRunConfigurationUtils.getProvisioningProfile(runConfig));
-        } else if (runConfig.getTargetType() == RoboVmRunConfiguration.TargetType.Simulator) {
-            builder.targetType(IOSTarget.TYPE);
-        } else if (runConfig.getTargetType() == RoboVmRunConfiguration.TargetType.Console) {
+    private static void configureTarget(Config.Builder builder, RoboVmBaseRunConfiguration runConfig) {
+        if (runConfig instanceof RoboVmIOSRunConfiguration) {
+            RoboVmIOSRunConfiguration iosConfig = (RoboVmIOSRunConfiguration) runConfig;
+            if (iosConfig.getTargetType() == IOSTargetTypePickerConfig.Target.Device) {
+                // configure device build
+                builder.targetType(IOSTarget.TYPE);
+                builder.iosSignIdentity(RoboVmRunConfigurationUtils.getIdentity(iosConfig.getOptions()));
+                builder.iosProvisioningProfile(RoboVmRunConfigurationUtils.getProvisioningProfile(iosConfig.getOptions()));
+            } else {
+                builder.targetType(IOSTarget.TYPE);
+            }
+        } if (runConfig instanceof RoboVmConsoleRunConfiguration) {
             builder.targetType(ConsoleTarget.TYPE);
         } else {
-            throw new RuntimeException("Unsupported target type: " + runConfig.getTargetType());
+            throw new IllegalArgumentException("Unsupported run configuration: " + runConfig.getClass().getSimpleName());
         }
     }
 

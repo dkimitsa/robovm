@@ -26,7 +26,7 @@ public final class RoboVmRunConfigurationUtils {
     /**
      * returns signing identity from run configuration
      */
-    public static SigningIdentity getIdentity(RoboVmRunConfiguration config) {
+    public static SigningIdentity getIdentity(DevicePickerConfig config) {
         SigningIdentity result;
         String signingId = config.getSigningIdentity();
         DevicePickerConfig.EntryType entryType = config.getSigningIdentityType();
@@ -43,7 +43,7 @@ public final class RoboVmRunConfigurationUtils {
         return  result;
     }
 
-    public static ProvisioningProfile getProvisioningProfile(RoboVmRunConfiguration config) {
+    public static ProvisioningProfile getProvisioningProfile(DevicePickerConfig config) {
         ProvisioningProfile result;
         String profile = config.getProvisioningProfile();
         DevicePickerConfig.EntryType entryType = config.getProvisioningProfileType();
@@ -54,39 +54,6 @@ public final class RoboVmRunConfigurationUtils {
             result = ProvisioningProfile.find(ProvisioningProfile.list(), profile);
         } else {
             result = null; // auto
-        }
-
-        return result;
-    }
-
-    public static DeviceType getSimulator(RoboVmRunConfiguration config) {
-        // FIXME: works with legacy run configuration
-        // TODO: FIXME: these two methods `getSimulator` to be reworked into single one
-
-        DeviceType result;
-        String simulator = config.getSimulator();
-        SimulatorPickerConfig.EntryType entryType = config.getSimulatorType();
-        if (entryType == null) {
-            // legacy, lookup by simulator name
-            result = null;
-        } else {
-            switch (entryType) {
-                case ID:
-                    // lookup by udid
-                    result = DeviceType.listDeviceTypes().stream()
-                            .filter(t -> t.getUdid().equals(simulator)).findAny().orElse(null);
-                    break;
-                case AUTO_IPHONE:
-                    // auto iPhone
-                    result = DeviceType.getBestDeviceType(DeviceType.DeviceFamily.iPhone);
-                    break;
-                case AUTO_IPAD:
-                    // auto iPad
-                    result = DeviceType.getBestDeviceType(DeviceType.DeviceFamily.iPad);
-                    break;
-                default:
-                    result = null;
-            }
         }
 
         return result;

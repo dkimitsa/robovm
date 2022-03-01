@@ -25,6 +25,7 @@ import com.intellij.openapi.project.Project
 import org.jdom.Element
 import org.robovm.compiler.AppCompiler
 import org.robovm.compiler.config.Config
+import org.robovm.compiler.config.CpuArch
 import org.robovm.compiler.target.ConsoleTarget
 import org.robovm.idea.RoboVmPlugin
 import org.robovm.idea.running.pickers.BasePrimitiveConfig
@@ -36,6 +37,8 @@ class RoboVmConsoleRunConfiguration(name: String, project: Project, factory: Con
         get() = options.workingDirectory
     val arguments: String?
         get() = options.arguments
+    val targetArch: CpuArch?
+        get() = options.targetArch
     // TODO: end of proxies
 
     override fun getOptionsClass(): Class<out RunConfigurationOptions> {

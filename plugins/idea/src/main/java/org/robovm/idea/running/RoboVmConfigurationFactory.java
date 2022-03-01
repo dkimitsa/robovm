@@ -29,7 +29,12 @@ public class RoboVmConfigurationFactory extends ConfigurationFactory {
     @NotNull
     @Override
     public RunConfiguration createTemplateConfiguration(@NotNull Project project) {
-        return new RoboVmRunConfiguration(getType(), "RoboVM Run Configuration", new RunConfigurationModule(project), this);
+        ConfigurationType type = getType();
+        if (type instanceof RoboVmIOSConfigurationType) {
+            return new RoboVmIOSRunConfiguration("RoboVM iOS Run Configuration", project, this);
+        } else if (type instanceof RoboVmConsoleConfigurationType) {
+            return new RoboVmConsoleRunConfiguration( "RoboVM Console Run Configuration", project, this);
+        } else throw new IllegalArgumentException("Unsupported configuration type: " + type);
     }
 
     @NotNull

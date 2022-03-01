@@ -31,6 +31,7 @@ import org.robovm.compiler.target.ios.IOSTarget
 import org.robovm.idea.RoboVmPlugin
 import org.robovm.idea.running.pickers.BasePrimitiveConfig
 import org.robovm.idea.running.pickers.DevicePickerConfig
+import org.robovm.idea.running.pickers.IOSTargetTypePickerConfig
 import org.robovm.idea.running.pickers.SimulatorPickerConfig
 
 class RoboVmIOSRunConfiguration(name: String, project: Project, factory: ConfigurationFactory)
@@ -59,6 +60,8 @@ class RoboVmIOSRunConfiguration(name: String, project: Project, factory: Configu
         get() = options.simulatorArch
     val deviceArch: CpuArch?
         get() = options.deviceArch
+    val targetType: IOSTargetTypePickerConfig.Target?
+        get() = options.targetType
     // TODO: end of proxies
 
     init {

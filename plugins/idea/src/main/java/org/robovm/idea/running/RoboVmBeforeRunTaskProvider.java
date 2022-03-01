@@ -66,7 +66,7 @@ public class RoboVmBeforeRunTaskProvider extends BeforeRunTaskProvider<RoboVmBef
     @Nullable
     @Override
     public Task createTask(@NotNull RunConfiguration runConfiguration) {
-        if (runConfiguration instanceof RoboVmRunConfiguration) {
+        if (runConfiguration instanceof RoboVmBaseRunConfiguration) {
             return new Task(TaskID);
         }
         return null;
@@ -74,12 +74,12 @@ public class RoboVmBeforeRunTaskProvider extends BeforeRunTaskProvider<RoboVmBef
 
     @Override
     public boolean canExecuteTask(@NotNull RunConfiguration configuration, @NotNull Task task) {
-        return configuration instanceof RoboVmRunConfiguration;
+        return configuration instanceof RoboVmBaseRunConfiguration;
     }
 
     @Override
     public boolean executeTask(@NotNull DataContext context, @NotNull final RunConfiguration configuration, @NotNull final ExecutionEnvironment env, @NotNull Task task) {
-        final RoboVmRunConfiguration runConfig = (RoboVmRunConfiguration) configuration;
+        final RoboVmBaseRunConfiguration runConfig = (RoboVmBaseRunConfiguration) configuration;
         final Ref<Boolean> result = new Ref<>(Boolean.FALSE);
         final Exception[] exception = {null};
         final Semaphore done = new Semaphore();
