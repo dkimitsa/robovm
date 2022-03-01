@@ -49,6 +49,7 @@ import org.robovm.compiler.config.Resource;
 import org.robovm.compiler.config.Resource.Walker;
 import org.robovm.compiler.config.StripArchivesConfig;
 import org.robovm.compiler.config.WatchKitApp;
+import org.robovm.compiler.plugin.LaunchPlugin;
 import org.robovm.compiler.util.ToolchainUtil;
 import org.simpleframework.xml.Transient;
 
@@ -790,6 +791,7 @@ public abstract class AbstractTarget implements Target {
                 ? launchParameters.getEnvironment() : Collections.<String, String>emptyMap());
         env.put("ROBOVM_LAUNCH_MODE", config.isDebug() ? "debug" : "release");
         launchParameters.setEnvironment(env);
+        launchParameters.setAppDirectory(getAppDir());
 
         return doLaunch(launchParameters);
     }
@@ -800,6 +802,28 @@ public abstract class AbstractTarget implements Target {
 
     protected Launcher createLauncher(LaunchParameters launchParameters) throws IOException {
         throw new UnsupportedOperationException();
+    }
+
+    /**
+     * @return Launcher listener to notify launch plugins about launch progress
+     */
+    protected Launcher.Listener createLauncherListener(LaunchParameters launchParameters) {
+        return new Launcher.Listener() {
+            @Override
+            public void beforeLaunch() {
+                config.getLaunchPlugins().forEach(plugin -> plugin.beforeLaunch(config, launchParameters));
+            }
+
+            @Override
+            public void justLaunched(Process process) {
+                config.getLaunchPlugins().forEach(plugin -> plugin.afterLaunch(config, launchParameters, process));
+            }
+
+            @Override
+            public void launchFinished() {
+                config.getLaunchPlugins().forEach(LaunchPlugin::cleanup);
+            }
+        };
     }
 
     protected Target build(Config config) {

@@ -22,7 +22,6 @@ import org.robovm.compiler.config.Config;
 import org.robovm.compiler.target.LaunchParameters;
 import org.robovm.compiler.target.ios.DeviceType;
 import org.robovm.compiler.target.ios.IOSSimulatorLaunchParameters;
-import org.robovm.compiler.util.io.Fifos;
 
 import java.io.IOException;
 
@@ -37,9 +36,6 @@ public class RoboVmIOSRunProfileState extends RoboVmBaseRunProfileState<RoboVmIO
         // TODO: FIXME: this method to be refactored and these parameters to be provided
 
         LaunchParameters launchParameters = config.getTarget().createLaunchParameters();
-
-        launchParameters.setStdoutFifo(Fifos.mkfifo("stdout"));
-        launchParameters.setStderrFifo(Fifos.mkfifo("stderr"));
         if (launchParameters instanceof IOSSimulatorLaunchParameters) {
             IOSSimulatorLaunchParameters simParams = (IOSSimulatorLaunchParameters) launchParameters;
             // finding exact simulator to run at

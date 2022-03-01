@@ -16,211 +16,134 @@
  */
 package org.robovm.compiler.target.ios;
 
-import org.apache.commons.exec.ExecuteException;
 import org.apache.commons.io.output.NullOutputStream;
-import org.robovm.compiler.log.ErrorOutputStream;
 import org.robovm.compiler.log.Logger;
-import org.robovm.compiler.target.Launcher;
 import org.robovm.compiler.util.Executor;
-import org.robovm.compiler.util.io.OpenOnWriteFileOutputStream;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InterruptedIOException;
 import java.io.OutputStream;
-import java.io.PrintStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import static org.apache.commons.exec.Executor.INVALID_EXITVALUE;
 
 /**
  * {@link Process} implementation which runs an app on a simulator using an
  * simctl
  */
-public class SimLauncherProcess extends Process implements Launcher {
-    private final CountDownLatch countDownLatch = new CountDownLatch(1);
-    private final AtomicInteger threadCounter = new AtomicInteger();
-    private final Logger log;
-    private final DeviceType deviceType;
-    private final String watchAppName;
-    private final File wd;
-    private final String bundleId;
+public class SimLauncherProcess extends AbstractLauncherProcess<IOSSimulatorLaunchParameters> {
+    private final PipedInputStream pipedStdOutStream = new PipedInputStream();
+    private final PipedInputStream pipedStdErrStream = new PipedInputStream();
+    private final NullOutputStream stdInStream = new NullOutputStream();
     private final File appDir;
-    private final List<String> arguments;
-    private HashMap<String, String> env;
-    private Thread launcherThread;
-    private volatile boolean finished = false;
-    private volatile int exitCode = -1;
-    private OutputStream errStream;
-    private OutputStream outStream;
+    private final String bundleId;
 
-    public SimLauncherProcess(Logger log, File appDir, String bundleId, IOSSimulatorLaunchParameters launchParameters) {
-        this.log = log;
-        deviceType = launchParameters.getDeviceType();
-        watchAppName = launchParameters.getPairedWatchAppName();
-        wd = launchParameters.getWorkingDirectory();
+    public SimLauncherProcess(Logger log, Listener listener, File appDir, String bundleId, IOSSimulatorLaunchParameters launchParameters) {
+        super(log, listener, launchParameters);
+
         this.appDir = appDir;
         this.bundleId = bundleId;
-        this.arguments = new ArrayList<>(launchParameters.getArguments(true));
+    }
+
+    @Override
+    protected int performLaunch() throws IOException {
+        DeviceType deviceType = launchParameters.getDeviceType();
+        String watchAppName = launchParameters.getPairedWatchAppName();
+        File wd = launchParameters.getWorkingDirectory();
+        ArrayList<String> arguments = new ArrayList<>(launchParameters.getArguments());
+        Map<String, String> env = null;
         if (launchParameters.getEnvironment() != null) {
-            this.env = new HashMap<>();
+            env = new HashMap<>();
             for (Map.Entry<String, String> entry : launchParameters.getEnvironment().entrySet()) {
                 env.put("SIMCTL_CHILD_" + entry.getKey(), entry.getValue());
             }
         }
 
-        outStream = System.out;
-        errStream = System.err;
-        if (launchParameters.getStdoutFifo() != null) {
-            outStream = new OpenOnWriteFileOutputStream(launchParameters.getStdoutFifo());
+        Executor executor;
+        DeviceType freshState = deviceType.refresh();
+        if (freshState != null && "shutdown".equals(freshState.getState().toLowerCase())) {
+            log.info("Booting simulator %s", deviceType.getUdid());
+            executor = new Executor(log, "xcrun");
+            executor.args("simctl", "boot", deviceType.getUdid());
+            executor.exec();
         }
-        if (launchParameters.getStderrFifo() != null) {
-            errStream = new OpenOnWriteFileOutputStream(launchParameters.getStderrFifo());
-        }
-    }
 
-    @Override
-    public Process execAsync() throws IOException {
-        this.launcherThread = new Thread("SimLauncherThread-" + threadCounter.getAndIncrement()) {
-            @Override
-            public void run() {
-                try {
-                    Executor executor;
-                    DeviceType freshState = deviceType.refresh();
-                    if (freshState != null && "shutdown".equals(freshState.getState().toLowerCase())) {
-                        log.info("Booting simulator %s", deviceType.getUdid());
-                        executor = new Executor(log, "xcrun");
-                        executor.args("simctl", "boot", deviceType.getUdid());
-                        executor.exec();
-                    }
+        // bringing simulator to front (and showing it if it was just booted)
+        log.info("Showing simulator %s", deviceType.getUdid());
+        executor = new Executor(log, "open");
+        executor.args("-a", "Simulator", "--args", "-CurrentDeviceUDID", deviceType.getUdid());
+        executor.exec();
 
-                    // bringing simulator to front (and showing it if it was just booted)
-                    log.info("Showing simulator %s", deviceType.getUdid());
-                    executor = new Executor(log, "open");
-                    executor.args("-a", "Simulator", "--args", "-CurrentDeviceUDID", deviceType.getUdid());
-                    executor.exec();
+        log.info("Deploying app %s to simulator %s", appDir.getAbsolutePath(),
+                deviceType.getUdid());
+        executor = new Executor(log, "xcrun");
+        executor.args("simctl", "install", deviceType.getUdid(), appDir.getAbsolutePath());
+        executor.exec();
 
-                    log.info("Deploying app %s to simulator %s", appDir.getAbsolutePath(),
-                            deviceType.getUdid());
-                    executor = new Executor(log, "xcrun");
-                    executor.args("simctl", "install", deviceType.getUdid(), appDir.getAbsolutePath());
-                    executor.exec();
-
-                    // launch and deploy to paired watch simulator
-                    if (watchAppName != null && freshState != null  && freshState.getPair() != null) {
-                        DeviceType watchDeviceType = freshState.getPair();
-                        if ("shutdown".equals(watchDeviceType.getState().toLowerCase())) {
-                            log.info("Booting watch simulator %s", watchDeviceType.getUdid());
-                            executor = new Executor(log, "xcrun");
-                            executor.args("simctl", "boot", watchDeviceType.getUdid());
-                            executor.exec();
-                        }
-
-                        // bringing simulator to front (and showing it if it was just booted)
-                        log.info("Showing watch simulator %s", watchDeviceType.getUdid());
-                        executor = new Executor(log, "open");
-                        executor.args("-a", "Simulator", "--args", "-CurrentDeviceUDID", watchDeviceType.getUdid());
-                        executor.exec();
-
-                        File watchAppDir = new File(appDir, "Watch/" + watchAppName);
-                        log.info("Deploying app %s to watch simulator %s", watchAppDir.getAbsolutePath(),
-                                watchDeviceType.getUdid());
-                        executor = new Executor(log, "xcrun");
-                        executor.args("simctl", "install", watchDeviceType.getUdid(), watchAppDir.getAbsolutePath());
-                        executor.exec();
-                    }
-
-                    log.info("Launching app %s on simulator %s", appDir.getAbsolutePath(),
-                            deviceType.getUdid());
-                    executor = new Executor(log, "xcrun");
-                    List<Object> args = new ArrayList<>();
-                    args.add("simctl");
-                    args.add("launch");
-                    args.add("--console");
-                    args.add(deviceType.getUdid());
-                    args.add(bundleId);
-                    args.addAll(arguments);
-                    executor.args(args);
-
-                    if (env != null) {
-                        executor.env(env);
-                    }
-
-                    executor.wd(wd).out(outStream).err(errStream).closeOutputStreams(true).inheritEnv(false);
-                    executor.exec();
-                    exitCode = 0;
-                } catch (ExecuteException e) {
-                    exitCode = e.getExitValue();
-                    // if process is interrupted Apache Executor will use this constant, replace with 0 otherwise
-                    // -559038737 looks odd in console output
-                    if (exitCode == INVALID_EXITVALUE)
-                        exitCode = 0;
-                } catch (Throwable t) {
-                    log.error("AppLauncher failed with an exception:", t.getMessage());
-                    t.printStackTrace(new PrintStream(new ErrorOutputStream(log), true));
-                } finally {
-                    finished = true;
-                    countDownLatch.countDown();
-                }
+        // launch and deploy to paired watch simulator
+        if (watchAppName != null && freshState != null && freshState.getPair() != null) {
+            DeviceType watchDeviceType = freshState.getPair();
+            if ("shutdown".equals(watchDeviceType.getState().toLowerCase())) {
+                log.info("Booting watch simulator %s", watchDeviceType.getUdid());
+                executor = new Executor(log, "xcrun");
+                executor.args("simctl", "boot", watchDeviceType.getUdid());
+                executor.exec();
             }
-        };
-        this.launcherThread.start();
-        return this;
-    }
 
-    @Override
-    public OutputStream getOutputStream() {
-        return new NullOutputStream();
-    }
+            // bringing simulator to front (and showing it if it was just booted)
+            log.info("Showing watch simulator %s", watchDeviceType.getUdid());
+            executor = new Executor(log, "open");
+            executor.args("-a", "Simulator", "--args", "-CurrentDeviceUDID", watchDeviceType.getUdid());
+            executor.exec();
 
-    @Override
-    public InputStream getInputStream() {
-        return waitInputStream;
-    }
-
-    @Override
-    public InputStream getErrorStream() {
-        return waitInputStream;
-    }
-
-    @Override
-    public int waitFor() throws InterruptedException {
-        countDownLatch.await();
-        return exitCode;
-    }
-
-    @Override
-    public int exitValue() {
-        if (!finished) {
-            throw new IllegalThreadStateException("Not terminated");
+            File watchAppDir = new File(appDir, "Watch/" + watchAppName);
+            log.info("Deploying app %s to watch simulator %s", watchAppDir.getAbsolutePath(),
+                    watchDeviceType.getUdid());
+            executor = new Executor(log, "xcrun");
+            executor.args("simctl", "install", watchDeviceType.getUdid(), watchAppDir.getAbsolutePath());
+            executor.exec();
         }
-        return exitCode;
+
+        log.info("Launching app %s on simulator %s", appDir.getAbsolutePath(),
+                deviceType.getUdid());
+        executor = new Executor(log, "xcrun");
+        List<Object> args = new ArrayList<>();
+        args.add("simctl");
+        args.add("launch");
+        args.add("--console");
+        args.add(deviceType.getUdid());
+        args.add(bundleId);
+        args.addAll(arguments);
+        executor.args(args);
+
+        if (env != null) {
+            executor.env(env);
+        }
+
+        OutputStream outStream = new PipedOutputStream(pipedStdOutStream);
+        OutputStream errStream = new PipedOutputStream(pipedStdErrStream);
+        executor.wd(wd).out(outStream).err(errStream).closeOutputStreams(true).inheritEnv(false);
+        executor.exec();
+        return 0;
     }
 
     @Override
-    public void destroy() {
-        try {
-            this.launcherThread.interrupt();
-            this.launcherThread.join();
-        } catch (InterruptedException ignored) {
-        }
+    protected OutputStream getPipeForStdIn() {
+        // no input stream for IOS
+        return stdInStream;
     }
 
-    final InputStream waitInputStream = new  InputStream() {
-        @Override
-        public int read() throws IOException {
-            try {
-                countDownLatch.await();
-            } catch (InterruptedException e) {
-                throw new InterruptedIOException();
-            }
-            return -1;
-        }
-    };
+    @Override
+    protected InputStream getPipeForStdOut() {
+        return pipedStdOutStream;
+    }
+
+    @Override
+    protected InputStream getPipeForStdErr() {
+        return pipedStdErrStream;
+    }
 }

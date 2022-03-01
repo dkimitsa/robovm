@@ -19,16 +19,18 @@ package org.robovm.idea.running;
 import com.intellij.execution.ExecutionException;
 import com.intellij.execution.RunnerAndConfigurationSettings;
 import com.intellij.execution.configurations.CommandLineState;
-import com.intellij.execution.process.*;
+import com.intellij.execution.process.ColoredProcessHandler;
+import com.intellij.execution.process.OSProcessHandler;
+import com.intellij.execution.process.ProcessHandler;
+import com.intellij.execution.process.ProcessTerminatedListener;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import org.jetbrains.annotations.NotNull;
 import org.robovm.compiler.AppCompiler;
 import org.robovm.compiler.config.Config;
 import org.robovm.compiler.target.LaunchParameters;
-import org.robovm.compiler.util.io.OpenOnReadFileInputStream;
 import org.robovm.idea.RoboVmPlugin;
 
-import java.io.*;
+import java.io.IOException;
 
 public abstract class RoboVmBaseRunProfileState<T extends RoboVmBaseRunConfiguration> extends CommandLineState {
 
@@ -53,25 +55,7 @@ public abstract class RoboVmBaseRunProfileState<T extends RoboVmBaseRunConfigura
         RoboVmPlugin.logInfo(getEnvironment().getProject(), "Launching executable");
 
         LaunchParameters launchParameters = createLaunchParameters(runConfig, config);
-
-        // launch plugin may proxy stdout/stderr fifo, which
-        // it then writes to. Need to save the original fifos
-        File stdOutFifo = launchParameters.getStdoutFifo();
-        File stdErrFifo = launchParameters.getStderrFifo();
-        PipedInputStream pipedIn = new PipedInputStream();
-        PipedOutputStream pipedOut = new PipedOutputStream(pipedIn);
-        Process process = compiler.launchAsync(launchParameters, pipedIn);
-        if (stdOutFifo != null || stdErrFifo != null) {
-            InputStream stdoutStream = null;
-            InputStream stderrStream = null;
-            if (launchParameters.getStdoutFifo() != null) {
-                stdoutStream = new OpenOnReadFileInputStream(stdOutFifo);
-            }
-            if (launchParameters.getStderrFifo() != null) {
-                stderrStream = new OpenOnReadFileInputStream(stdErrFifo);
-            }
-            process = new ProcessProxy(process, pipedOut, stdoutStream, stderrStream, compiler);
-        }
+        Process process = config.getTarget().launch(launchParameters);
         RoboVmPlugin.logInfo(getEnvironment().getProject(), "Launch done");
 
         final OSProcessHandler processHandler = new ColoredProcessHandler(process, null);
@@ -103,99 +87,5 @@ public abstract class RoboVmBaseRunProfileState<T extends RoboVmBaseRunConfigura
 
     public void setDebugPort(int debugPort) {
         this.debugPort = debugPort;
-    }
-
-    private static class ProcessProxy extends Process implements SelfKiller {
-        private final Process target;
-        private final OutputStream outputStream;
-        private final InputStream inputStream;
-        private final InputStream errorStream;
-        private AppCompiler appCompiler;
-        private volatile boolean cleanedUp = false;
-
-        ProcessProxy(Process target, OutputStream outputStream, InputStream inputStream, InputStream errorStream,
-                     AppCompiler appCompiler) {
-            this.target = target;
-            this.outputStream = outputStream;
-            this.inputStream = inputStream;
-            this.errorStream = errorStream;
-            this.appCompiler = appCompiler;
-        }
-
-        public void destroy() {
-            synchronized (this) {
-                if (!cleanedUp) {
-                    if (appCompiler != null) {
-                        appCompiler.launchAsyncCleanup();
-                        appCompiler = null;
-                    }
-                    cleanedUp = true;
-                }
-            }
-            target.destroy();
-        }
-
-        @SuppressWarnings("EqualsWhichDoesntCheckParameterClass")
-        public boolean equals(Object obj) {
-            return target.equals(obj);
-        }
-
-        public int exitValue() {
-            int exitValue = target.exitValue();
-            synchronized (this) {
-                if (appCompiler != null && !cleanedUp) {
-                    appCompiler.launchAsyncCleanup();
-                    appCompiler = null;
-                    cleanedUp = true;
-                }
-            }
-            return exitValue;
-        }
-
-        public InputStream getErrorStream() {
-            if (errorStream != null) {
-                return errorStream;
-            }
-            return target.getErrorStream();
-        }
-
-        public InputStream getInputStream() {
-            if (inputStream != null) {
-                return inputStream;
-            }
-            return target.getInputStream();
-        }
-
-        public OutputStream getOutputStream() {
-            if (outputStream != null) {
-                return outputStream;
-            }
-            return target.getOutputStream();
-        }
-
-        public int hashCode() {
-            return target.hashCode();
-        }
-
-        public String toString() {
-            return target.toString();
-        }
-
-        public int waitFor() {
-            try {
-                return target.waitFor();
-            } catch (Throwable t) {
-                synchronized (this) {
-                    if (!cleanedUp) {
-                        if (appCompiler != null) {
-                            appCompiler.launchAsyncCleanup();
-                        }
-                        cleanedUp = true;
-                    }
-                    appCompiler = null;
-                }
-                throw new RuntimeException(t);
-            }
-        }
     }
 }

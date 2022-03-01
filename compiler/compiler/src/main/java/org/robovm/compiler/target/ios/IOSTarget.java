@@ -167,8 +167,9 @@ public class IOSTarget extends AbstractTarget {
         }
     }
 
-    private Launcher createIOSSimLauncher(LaunchParameters launchParameters) throws IOException {
-        return new SimLauncherProcess(config.getLogger(), getAppDir(), getBundleId(), (IOSSimulatorLaunchParameters) launchParameters);
+    private Launcher createIOSSimLauncher(LaunchParameters launchParameters) {
+        return new SimLauncherProcess(config.getLogger(), createLauncherListener(launchParameters),
+                getAppDir(), getBundleId(), (IOSSimulatorLaunchParameters) launchParameters);
     }
 
     private Launcher createIOSDevLauncher(LaunchParameters launchParameters)
@@ -191,13 +192,6 @@ public class IOSTarget extends AbstractTarget {
         }
         device = new IDevice(deviceId);
 
-        OutputStream out = null;
-        if (launchParameters.getStdoutFifo() != null) {
-            out = new OpenOnWriteFileOutputStream(launchParameters.getStdoutFifo());
-        } else {
-            out = System.out;
-        }
-
         Map<String, String> env = launchParameters.getEnvironment();
         if (env == null) {
             env = new HashMap<>();
@@ -210,7 +204,6 @@ public class IOSTarget extends AbstractTarget {
                 config.getLogger().info(s, args);
             }
         }
-                .stdout(out)
                 .closeOutOnExit(true)
                 .args(launchParameters.getArguments(true).toArray(new String[0]))
                 .env(env)
@@ -252,7 +245,8 @@ public class IOSTarget extends AbstractTarget {
                     public void error(String message) {}
                 });
 
-        return new AppLauncherProcess(config.getLogger(), launcher, launchParameters);
+        return new AppLauncherProcess(config.getLogger(), createLauncherListener(launchParameters),
+                launcher, launchParameters);
     }
 
     @Override

@@ -20,7 +20,6 @@ import com.intellij.execution.ExecutionException;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import org.robovm.compiler.config.Config;
 import org.robovm.compiler.target.LaunchParameters;
-import org.robovm.compiler.util.io.Fifos;
 
 import java.io.File;
 import java.io.IOException;
@@ -35,9 +34,6 @@ public class RoboVmConsoleRunProfileState extends RoboVmBaseRunProfileState<Robo
         // TODO: FIXME: this method to be refactored and these parameters to be provided
 
         LaunchParameters launchParameters = config.getTarget().createLaunchParameters();
-        launchParameters.setStdoutFifo(Fifos.mkfifo("stdout"));
-        launchParameters.setStderrFifo(Fifos.mkfifo("stderr"));
-
         if (runConfig.getWorkingDir() != null && !runConfig.getWorkingDir().isEmpty()) {
             launchParameters.setWorkingDirectory(new File(runConfig.getWorkingDir()));
         }
