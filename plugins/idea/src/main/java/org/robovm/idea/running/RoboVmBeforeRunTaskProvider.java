@@ -2,6 +2,7 @@ package org.robovm.idea.running;
 
 import com.intellij.execution.BeforeRunTask;
 import com.intellij.execution.BeforeRunTaskProvider;
+import com.intellij.execution.ExecutionException;
 import com.intellij.execution.configurations.RunConfiguration;
 import com.intellij.execution.runners.ExecutionEnvironment;
 import com.intellij.openapi.actionSystem.DataContext;
@@ -80,6 +81,12 @@ public class RoboVmBeforeRunTaskProvider extends BeforeRunTaskProvider<RoboVmBef
     @Override
     public boolean executeTask(@NotNull DataContext context, @NotNull final RunConfiguration configuration, @NotNull final ExecutionEnvironment env, @NotNull Task task) {
         final RoboVmBaseRunConfiguration runConfig = (RoboVmBaseRunConfiguration) configuration;
+        final RoboVmBaseRunProfileState<?> runProfileState;
+        try {
+            runProfileState = (RoboVmBaseRunProfileState<?>) env.getState();
+        } catch (ExecutionException e) {
+            throw new RuntimeException(e);
+        }
         final Ref<Boolean> result = new Ref<>(Boolean.FALSE);
         final Exception[] exception = {null};
         final Semaphore done = new Semaphore();
@@ -89,7 +96,9 @@ public class RoboVmBeforeRunTaskProvider extends BeforeRunTaskProvider<RoboVmBef
             @Override
             public void run(@NotNull ProgressIndicator progressIndicator) {
                 try {
-                    result.set(RoboVmCompileTask.compileForRunConfiguration(env.getProject(), progressIndicator, runConfig));
+                    boolean isDebug = RoboVmRunner.DEBUG_EXECUTOR.equals(env.getExecutor().getId());
+                    result.set(RoboVmCompileTask.compileForRunConfiguration(env.getProject(), progressIndicator,
+                            runConfig, runProfileState, isDebug));
                 } catch (Exception e) {
                     exception[0] = e;
                 } finally {

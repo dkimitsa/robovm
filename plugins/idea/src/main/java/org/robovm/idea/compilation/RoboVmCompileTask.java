@@ -46,23 +46,14 @@ import org.robovm.compiler.target.ios.SigningIdentity;
 import org.robovm.idea.RoboVmPlugin;
 import org.robovm.idea.actions.CreateFrameworkAction;
 import org.robovm.idea.actions.CreateIpaAction;
-import org.robovm.idea.running.RoboVmBaseRunConfiguration;
-import org.robovm.idea.running.RoboVmConsoleRunConfiguration;
-import org.robovm.idea.running.RoboVmIOSRunConfiguration;
-import org.robovm.idea.running.RoboVmRunConfigurationUtils;
+import org.robovm.idea.running.*;
 import org.robovm.idea.running.pickers.IOSTargetTypePickerConfig;
 import org.robovm.idea.utils.RoboFileUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Initially was a CompileTask that was attached as last chain in compilation
@@ -187,7 +178,10 @@ public class RoboVmCompileTask {
         return true;
     }
 
-    public static boolean compileForRunConfiguration(Project project, ProgressIndicator progress, final RoboVmBaseRunConfiguration runConfig) {
+    public static boolean compileForRunConfiguration(Project project, ProgressIndicator progress,
+                                                     final RoboVmBaseRunConfiguration runConfig,
+                                                     final RoboVmBaseRunProfileState<?> runProfileState,
+                                                     final boolean isDebug) {
         try {
             progress.pushState();
             RoboVmPlugin.focusToolWindow(project);
@@ -247,7 +241,8 @@ public class RoboVmCompileTask {
             // setup classpath entries, debug build parameters and target
             // parameters, e.g. signing identity etc.
             configureClassAndSourcepaths(project, module, builder);
-            configureDebugging(builder, runConfig, module);
+            if (isDebug)
+                configureDebugging(builder, runProfileState, module);
             configureTarget(builder, runConfig);
 
             // Set the Home to be used, create the Config and AppCompiler
@@ -381,38 +376,37 @@ public class RoboVmCompileTask {
         }
     }
 
-    private static void configureDebugging(Config.Builder builder, RoboVmBaseRunConfiguration runConfig, Module module) {
+    private static void configureDebugging(Config.Builder builder, RoboVmBaseRunProfileState<?> runProfileState, Module module) {
         // setup debug configuration if necessary
-        if (runConfig.isDebug()) {
-            Set<String> sourcesPaths = new HashSet<>();
+        Set<String> sourcesPaths = new HashSet<>();
 
-            // source paths of dependencies and modules
-            OrderRootsEnumerator sources = ModuleRootManager.getInstance(module).orderEntries().recursively().withoutSdk().sources();
-            for (String path : sources.getPathsList().getPathList()) {
-                RoboVmPlugin.logInfo(module.getProject(), "source path entry: %s", path);
-                sourcesPaths.add(path);
-            }
-
-            StringBuilder b = new StringBuilder();
-            // SDK sourcepaths
-            for (File path : RoboVmPlugin.getSdkLibrarySources()) {
-                b.append(path.getAbsolutePath());
-                b.append(":");
-            }
-
-            for (String path : sourcesPaths) {
-                b.append(path);
-                b.append(":");
-            }
-
-            // set arguments for debug plugin
-            runConfig.setDebugPort(findFreePort());
-            builder.debug(true);
-            builder.addPluginArgument("debug:sourcepath=" + b.toString());
-            builder.addPluginArgument("debug:jdwpport=" + runConfig.getDebugPort());
-            builder.addPluginArgument("debug:clientmode=true");
-            builder.addPluginArgument("debug:logdir=" + RoboVmPlugin.getModuleLogDir(module).getAbsolutePath());
+        // source paths of dependencies and modules
+        OrderRootsEnumerator sources = ModuleRootManager.getInstance(module).orderEntries().recursively().withoutSdk().sources();
+        for (String path : sources.getPathsList().getPathList()) {
+            RoboVmPlugin.logInfo(module.getProject(), "source path entry: %s", path);
+            sourcesPaths.add(path);
         }
+
+        StringBuilder b = new StringBuilder();
+        // SDK sourcepaths
+        for (File path : RoboVmPlugin.getSdkLibrarySources()) {
+            b.append(path.getAbsolutePath());
+            b.append(":");
+        }
+
+        for (String path : sourcesPaths) {
+            b.append(path);
+            b.append(":");
+        }
+
+        // set arguments for debug plugin
+        int debugPort = findFreePort();
+        runProfileState.setDebugPort(debugPort);
+        builder.debug(true);
+        builder.addPluginArgument("debug:sourcepath=" + b.toString());
+        builder.addPluginArgument("debug:jdwpport=" + debugPort);
+        builder.addPluginArgument("debug:clientmode=true");
+        builder.addPluginArgument("debug:logdir=" + RoboVmPlugin.getModuleLogDir(module).getAbsolutePath());
     }
 
     private static void configureTarget(Config.Builder builder, RoboVmBaseRunConfiguration runConfig) {

@@ -39,9 +39,7 @@ public abstract class RoboVmBaseRunConfiguration(name: String, project: Project,
     // these are used to pass information between
     // the compiler, the run configuration and the
     // runner. They are not persisted.
-    var isDebug = false
     var config: Config? = null
-    var debugPort = 0
     var compiler: AppCompiler? = null
     var programArguments: List<String>? = null
     // TODO: FIXME: end of

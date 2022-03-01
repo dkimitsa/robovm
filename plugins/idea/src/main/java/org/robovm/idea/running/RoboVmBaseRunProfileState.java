@@ -32,6 +32,8 @@ import java.io.*;
 
 public abstract class RoboVmBaseRunProfileState<T extends RoboVmBaseRunConfiguration> extends CommandLineState {
 
+    private int debugPort = -1;
+
     protected RoboVmBaseRunProfileState(ExecutionEnvironment environment) {
         super(environment);
     }
@@ -92,6 +94,15 @@ public abstract class RoboVmBaseRunProfileState<T extends RoboVmBaseRunConfigura
             RoboVmPlugin.logErrorThrowable(getEnvironment().getProject(), "Couldn't start application", t, true);
             throw new ExecutionException(t);
         }
+    }
+
+
+    public int getDebugPort() {
+        return debugPort;
+    }
+
+    public void setDebugPort(int debugPort) {
+        this.debugPort = debugPort;
     }
 
     private static class ProcessProxy extends Process implements SelfKiller {
