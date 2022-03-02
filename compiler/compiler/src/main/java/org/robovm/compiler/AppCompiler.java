@@ -1173,6 +1173,14 @@ public class AppCompiler {
         return builder.toString();
     }
 
+    public int launch(LaunchParameters launchParameters) throws IOException, InterruptedException {
+        return config.getTarget().launch(launchParameters);
+    }
+
+    public Process launchAsync(LaunchParameters launchParameters) throws IOException {
+        return config.getTarget().launchAsync(launchParameters);
+    }
+
     private class UpdateChecker extends Thread {
         private final String address;
         private volatile JSONObject result;

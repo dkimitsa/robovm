@@ -17,13 +17,7 @@
  */
 package org.robovm.compiler.target.ios;
 
-import com.dd.plist.NSArray;
-import com.dd.plist.NSDictionary;
-import com.dd.plist.NSNumber;
-import com.dd.plist.NSObject;
-import com.dd.plist.NSString;
-import com.dd.plist.PropertyListFormatException;
-import com.dd.plist.PropertyListParser;
+import com.dd.plist.*;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.filefilter.AndFileFilter;
@@ -36,17 +30,13 @@ import org.robovm.compiler.config.*;
 import org.robovm.compiler.log.Logger;
 import org.robovm.compiler.target.AbstractTarget;
 import org.robovm.compiler.target.LaunchParameters;
-import org.robovm.compiler.target.Launcher;
+import org.robovm.compiler.target.Launchers;
+import org.robovm.compiler.target.Launchers.CustomizableLauncher;
 import org.robovm.compiler.target.ios.ProvisioningProfile.Type;
 import org.robovm.compiler.util.Executor;
 import org.robovm.compiler.util.PList;
 import org.robovm.compiler.util.ToolchainUtil;
-import org.robovm.compiler.util.io.OpenOnWriteFileOutputStream;
-import org.robovm.libimobiledevice.AfcClient.UploadProgressCallback;
 import org.robovm.libimobiledevice.IDevice;
-import org.robovm.libimobiledevice.InstallationProxyClient.StatusCallback;
-import org.robovm.libimobiledevice.util.AppLauncher;
-import org.robovm.libimobiledevice.util.AppLauncherCallback;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
@@ -54,7 +44,6 @@ import java.io.File;
 import java.io.FileFilter;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.OutputStream;
 import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
@@ -159,7 +148,7 @@ public class IOSTarget extends AbstractTarget {
     }
 
     @Override
-    protected Launcher createLauncher(LaunchParameters launchParameters) throws IOException {
+    protected CustomizableLauncher createLauncher(LaunchParameters launchParameters) throws IOException {
         if (isSimulatorArch(arch)) {
             return createIOSSimLauncher(launchParameters);
         } else {
@@ -167,16 +156,16 @@ public class IOSTarget extends AbstractTarget {
         }
     }
 
-    private Launcher createIOSSimLauncher(LaunchParameters launchParameters) {
-        return new SimLauncherProcess(config.getLogger(), createLauncherListener(launchParameters),
-                getAppDir(), getBundleId(), (IOSSimulatorLaunchParameters) launchParameters);
+    private CustomizableLauncher createIOSSimLauncher(LaunchParameters launchParameters) {
+        return SimLauncherProcess.createLauncher(config.getLogger(),
+                createLauncherListener(launchParameters),
+                (IOSSimulatorLaunchParameters) launchParameters, getAppDir(), getBundleId());
     }
 
-    private Launcher createIOSDevLauncher(LaunchParameters launchParameters)
-            throws IOException {
-
+    private CustomizableLauncher createIOSDevLauncher(LaunchParameters launchParameters) {
         IOSDeviceLaunchParameters deviceLaunchParameters = (IOSDeviceLaunchParameters) launchParameters;
-        return new AppLauncherProcess(config.getLogger(), createLauncherListener(launchParameters),
+        return AppLauncherProcess.createLauncher(config.getLogger(),
+                createLauncherListener(launchParameters),
                 deviceLaunchParameters, getAppDir());
     }
 
@@ -726,13 +715,12 @@ public class IOSTarget extends AbstractTarget {
     }
 
     @Override
-    protected Process doLaunch(LaunchParameters launchParameters) throws IOException {
+    protected CustomizableLauncher doLaunch(LaunchParameters launchParameters) throws IOException {
         // in IDEA prepare for launch is happening during build phase to not block calling thread
         // all other plugins will prepare here
         if (!config.isManuallyPreparedForLaunch())
             prepareLaunch();
-        Process process = super.doLaunch(launchParameters);
-        return process;
+        return super.doLaunch(launchParameters);
     }
 
     @Override

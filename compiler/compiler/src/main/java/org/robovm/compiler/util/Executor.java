@@ -22,7 +22,7 @@ import org.apache.commons.exec.util.StringUtils;
 import org.robovm.compiler.log.ErrorOutputStream;
 import org.robovm.compiler.log.InfoOutputStream;
 import org.robovm.compiler.log.Logger;
-import org.robovm.compiler.target.Launcher;
+import org.robovm.compiler.target.Launchers.Launcher;
 import org.robovm.compiler.util.io.NeverCloseOutputStream;
 
 import java.io.*;
@@ -325,8 +325,9 @@ public class Executor implements Launcher {
             }
         }
     }
-    
-    public int exec() throws ExecuteException, IOException {
+
+    @Override
+    public int exec() throws IOException {
         CommandLine commandLine = generateCommandLine();
         logCommandLine(commandLine);
         try {
@@ -338,7 +339,8 @@ public class Executor implements Launcher {
             throw ex;
         }
     }
-    
+
+    @Override
     public Process execAsync() throws IOException {
         CommandLine commandLine = generateCommandLine();
         logCommandLine(commandLine);

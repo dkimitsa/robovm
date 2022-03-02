@@ -55,7 +55,7 @@ public abstract class RoboVmBaseRunProfileState<T extends RoboVmBaseRunConfigura
         RoboVmPlugin.logInfo(getEnvironment().getProject(), "Launching executable");
 
         LaunchParameters launchParameters = createLaunchParameters(runConfig, config);
-        Process process = config.getTarget().launch(launchParameters);
+        Process process = config.getTarget().launchAsync(launchParameters);
         RoboVmPlugin.logInfo(getEnvironment().getProject(), "Launch done");
 
         final OSProcessHandler processHandler = new ColoredProcessHandler(process, null);
