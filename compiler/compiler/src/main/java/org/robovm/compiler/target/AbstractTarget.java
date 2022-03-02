@@ -806,7 +806,7 @@ public abstract class AbstractTarget implements Target {
             }
 
             @Override
-            public void justLaunched(Process process) {
+            public void justLaunched(Launchers.Killable process) {
                 config.getLaunchPlugins().forEach(plugin -> plugin.afterLaunch(config, launchParameters, process));
             }
 

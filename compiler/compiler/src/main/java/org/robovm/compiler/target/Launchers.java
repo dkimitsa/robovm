@@ -21,6 +21,7 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
 import org.robovm.compiler.log.ErrorOutputStream;
 import org.robovm.compiler.log.Logger;
+import org.robovm.compiler.util.io.ObservableOutputStream;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -93,11 +94,18 @@ public abstract class Launchers {
     }
 
     /**
+     * interface that allows to terminate running process (e.g. from debugger)
+     */
+    public interface Killable {
+        void terminate();
+    }
+
+    /**
      * Launcher progress listener
      */
     public interface Listener {
         void beforeLaunch();
-        void justLaunched(Process process);
+        void justLaunched(Killable monitor);
         void launchFinished();
     }
 
@@ -108,14 +116,13 @@ public abstract class Launchers {
      * - provides locking and wait logic
      * @param <T> type of launch parameter
      */
-    protected abstract static class LauncherThread<T extends LaunchParameters> extends Thread {
+    protected abstract static class LauncherThread<T extends LaunchParameters> extends Thread implements Killable {
         protected final Logger log;
         protected final Listener listener;
         protected final T launchParameters;
 
         protected final CountDownLatch countDownLatch = new CountDownLatch(1);
         private volatile boolean cleanedUp = false;
-        private volatile boolean finished = false;
         private volatile int exitCode = -1;
 
         // input/output redirection. if not set -- launcher specific will be used
@@ -137,18 +144,20 @@ public abstract class Launchers {
 
         protected LauncherThread(Logger log, Listener listener, T launchParameters,
                                  OutputStream out, OutputStream err, InputStream in) {
+            // notify right in the bottom of constructors. this allows all launchers to
+            // use finished launchParameters at constructor level
+            listener.beforeLaunch();
+
             this.log = log;
             this.listener = listener;
             this.launchParameters = launchParameters;
+            if (launchParameters.getStdOutObserver() != null)
+                out = new ObservableOutputStream(out, launchParameters.getStdOutObserver());
             this.out = out;
             this.err = err;
             this.in = in;
 
             setName(getThreadName());
-
-            // notify right in the bottom of constructors. this allows all launchers to
-            // use finished launchParameters at constructor level
-            listener.beforeLaunch();
         }
 
         protected LauncherThread(Builder<T> builder) {
@@ -165,6 +174,8 @@ public abstract class Launchers {
 
         @Override
         public void run() {
+            listener.justLaunched(this);
+
             try {
                 exitCode = performLaunch();
             } catch (ExecuteException e) {
@@ -177,7 +188,6 @@ public abstract class Launchers {
                 log.error(getLauncherName() + " failed with an exception:", t.getMessage());
                 t.printStackTrace(new PrintStream(new ErrorOutputStream(log), true));
             } finally {
-                finished = true;
                 countDownLatch.countDown();
                 cleanUp();
             }
@@ -203,6 +213,18 @@ public abstract class Launchers {
                     listener.launchFinished();
                 }
             }
+        }
+
+        @Override
+        public void terminate() {
+            if (isAlive()) {
+                try {
+                    interrupt();
+                    join();
+                } catch (InterruptedException ignored) {
+                }
+            }
+            cleanUp();
         }
     }
 
@@ -279,7 +301,6 @@ public abstract class Launchers {
             LauncherThread<T> thread = createAndSetupThread(true);
             Process process = new LauncherProcess(thread, in.getRight(), out.getRight(), err.getRight());
             thread.start();
-            listener.justLaunched(process);
             return process;
         }
 
@@ -333,7 +354,7 @@ public abstract class Launchers {
 
         @Override
         public final int exitValue() {
-            if (!thread.finished) {
+            if (thread.isAlive()) {
                 throw new IllegalThreadStateException("Not terminated");
             }
             return thread.exitCode;
@@ -341,12 +362,7 @@ public abstract class Launchers {
 
         @Override
         public final void destroy() {
-            try {
-                thread.interrupt();
-                thread.join();
-            } catch (InterruptedException ignored) {
-            }
-            thread.cleanUp();
+            thread.terminate();
         }
     }
 }

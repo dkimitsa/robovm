@@ -22,6 +22,7 @@ import org.robovm.compiler.plugin.PluginArgument;
 import org.robovm.compiler.plugin.PluginArguments;
 import org.robovm.compiler.target.ConsoleTarget;
 import org.robovm.compiler.target.LaunchParameters;
+import org.robovm.compiler.target.Launchers;
 import org.robovm.compiler.target.Target;
 import org.robovm.compiler.target.ios.IOSDeviceLaunchParameters;
 import org.robovm.compiler.target.ios.IOSTarget;
@@ -150,12 +151,12 @@ public class DebuggerLaunchPlugin extends LaunchPlugin {
     }
 
     @Override
-    public void afterLaunch(Config config, LaunchParameters parameters, Process process) {
+    public void afterLaunch(Config config, LaunchParameters parameters, Launchers.Killable process) {
         if (!config.isDebug())
             return;
 
         // create and start the debugger
-        debugger = new Debugger(process, debuggerConfig);
+        debugger = new Debugger(process::terminate, debuggerConfig);
         debugger.start();
     }
 

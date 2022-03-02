@@ -38,9 +38,9 @@ public class Debugger implements DebuggerThread.Catcher, IHooksEventsHandler, IJ
     private final DbgLogger log;
 
     /**
-     * reference to process this debug session is working on. in case of debugger crash will terminate process as well
+     * Runnable that terminates debuggable process. in case of debugger crash will terminate process as well
      */
-    private final Process process;
+    private final Runnable terminateRunnable;
 
     /**
      * config debugger was started with
@@ -68,7 +68,7 @@ public class Debugger implements DebuggerThread.Catcher, IHooksEventsHandler, IJ
     private final HooksChannel hooksChannel;
 
 
-    public Debugger(Process process, DebuggerConfig config) {
+    public Debugger(Runnable terminateRunnable, DebuggerConfig config) {
         // setup logger
         File logFile = config.logDir() != null ? new File(config.logDir(), "debugger"+System.currentTimeMillis() + ".log") : null;
         DbgLogger.setup(logFile, config.logToConsole());
@@ -77,7 +77,7 @@ public class Debugger implements DebuggerThread.Catcher, IHooksEventsHandler, IJ
         this.log = DbgLogger.get(this.getClass().getSimpleName());
 
         // save references
-        this.process = process;
+        this.terminateRunnable = terminateRunnable;
         this.config = config;
         this.state = new VmDebuggerState(config.appfile(), config.arch());
         this.delegates = new AllDelegates(this, state);
@@ -116,8 +116,8 @@ public class Debugger implements DebuggerThread.Catcher, IHooksEventsHandler, IJ
             System.exit(-1);
 
         // destroy process, otherwise it will stuck as running in Idea
-        if (process != null && process.isAlive())
-            process.destroy();
+        if (terminateRunnable != null)
+            terminateRunnable.run();
     }
 
     @Override

@@ -18,6 +18,7 @@ package org.robovm.compiler.plugin;
 
 import org.robovm.compiler.config.Config;
 import org.robovm.compiler.target.LaunchParameters;
+import org.robovm.compiler.target.Launchers;
 
 /**
  * Plugin interface which makes it possible to hook into launch process
@@ -31,7 +32,7 @@ public abstract class LaunchPlugin extends Plugin {
     /**
      * Called after the launch of a RoboVM application
      */
-    public abstract void afterLaunch(Config config, LaunchParameters parameters, Process process);
+    public abstract void afterLaunch(Config config, LaunchParameters parameters, Launchers.Killable process);
     
     /**
      * Called when the launch failed
