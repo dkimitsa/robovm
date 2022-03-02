@@ -20,7 +20,6 @@ import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.robovm.compiler.log.Logger;
 import org.robovm.compiler.target.LaunchParameters;
 import org.robovm.compiler.target.Launchers;
-import org.robovm.compiler.target.Launchers.Listener;
 import org.robovm.compiler.util.Executor;
 import org.robovm.compiler.util.io.NeverCloseInputStream;
 import org.robovm.compiler.util.io.NeverCloseOutputStream;
@@ -38,42 +37,50 @@ import java.util.Map;
 /**
  * {@link Process} which runs in console and redirects io
  */
-public class ConsoleLauncherProcess extends AbstractLauncherProcess<LaunchParameters> {
-    private final File executable;
+public class ConsoleLauncherProcess extends Launchers {
 
-    private ConsoleLauncherProcess(Builder builder, File executable) {
-        super(builder);
-
-        this.executable = executable;
-    }
-
-    public static Launchers.CustomizableLauncher createLauncher(Logger log, Listener listener, LaunchParameters launchParameters,
+    /**
+     * Creates customizable console app launcher
+     */
+    public static Launchers.CustomizableLauncher createLauncher(Logger log, Listener listener,
+                                                                LaunchParameters launchParameters,
                                                                 File executable) {
         return new ConsoleLauncherProcess.Builder(log, listener, launchParameters, executable);
     }
 
-    @Override
-    protected int performLaunch() throws IOException {
-        File wd = launchParameters.getWorkingDirectory();
-        ArrayList<String> arguments = new ArrayList<>(launchParameters.getArguments());
-        Map<String, String> env = launchParameters.getEnvironment();
+    /// thread around Executor
+    private static class LauncherThread extends Launchers.LauncherThread<LaunchParameters> {
+        private final File executable;
 
-        Executor executor = new Executor(log, executable.getAbsolutePath())
-                .args(arguments)
-                .wd(wd)
-                .inheritEnv(env == null)
-                .env(env == null ? Collections.emptyMap() : env)
-                .out(out)
-                .err(err)
-                .in(in)
-                .closeOutputStreams(true);
+        private LauncherThread(Builder builder, File executable) {
+            super(builder);
 
-        log.info("Launching console app %s", executable.getAbsolutePath());
-        executor.exec();
-        return  0;
+            this.executable = executable;
+        }
+
+        @Override
+        protected int performLaunch() throws IOException {
+            File wd = launchParameters.getWorkingDirectory();
+            ArrayList<String> arguments = new ArrayList<>(launchParameters.getArguments());
+            Map<String, String> env = launchParameters.getEnvironment();
+
+            Executor executor = new Executor(log, executable.getAbsolutePath())
+                    .args(arguments)
+                    .wd(wd)
+                    .inheritEnv(env == null)
+                    .env(env == null ? Collections.emptyMap() : env)
+                    .out(out)
+                    .err(err)
+                    .in(in)
+                    .closeOutputStreams(true);
+
+            log.info("Launching console app %s", executable.getAbsolutePath());
+            executor.exec();
+            return 0;
+        }
     }
 
-    public static class Builder extends AbstractLauncherProcess.Builder<LaunchParameters> {
+    public static class Builder extends Launchers.Builder<LaunchParameters> {
         private final File executable;
 
         public Builder(Logger log, Listener listener, LaunchParameters launchParameters,
@@ -83,12 +90,12 @@ public class ConsoleLauncherProcess extends AbstractLauncherProcess<LaunchParame
         }
 
         @Override
-        protected AbstractLauncherProcess.Builder<LaunchParameters> duplicate() {
+        protected Builder duplicate() {
             return new Builder(log, listener, launchParameters, executable);
         }
 
         @Override
-        protected AbstractLauncherProcess<LaunchParameters> createAndSetupThread(boolean async) throws IOException {
+        protected LauncherThread createAndSetupThread(boolean async) throws IOException {
             // apply default streams if not configured
             if (async) {
                 if (out == null) {
@@ -111,7 +118,7 @@ public class ConsoleLauncherProcess extends AbstractLauncherProcess<LaunchParame
                 if (in == null)
                     in = new ImmutablePair<>(new NeverCloseInputStream(System.in), null);
             }
-            return new ConsoleLauncherProcess(this, executable);
+            return new LauncherThread(this, executable);
         }
 
         @Override

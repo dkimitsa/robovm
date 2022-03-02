@@ -20,8 +20,6 @@ import org.apache.commons.io.output.NullOutputStream;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.robovm.compiler.log.Logger;
 import org.robovm.compiler.target.Launchers;
-import org.robovm.compiler.target.Launchers.CustomizableLauncher;
-import org.robovm.compiler.target.Launchers.Listener;
 import org.robovm.compiler.util.Executor;
 import org.robovm.compiler.util.io.NeverCloseOutputStream;
 
@@ -40,103 +38,111 @@ import java.util.Map;
  * {@link Process} implementation which runs an app on a simulator using an
  * simctl
  */
-public class SimLauncherProcess extends AbstractLauncherProcess<IOSSimulatorLaunchParameters> {
-    private final File appDir;
-    private final String bundleId;
+public class SimLauncherProcess extends Launchers {
 
-    private SimLauncherProcess(Builder builder, File appDir, String bundleId) {
-        super(builder);
-
-        this.appDir = appDir;
-        this.bundleId = bundleId;
-    }
-
-    public static CustomizableLauncher createLauncher(Logger log, Listener listener, IOSSimulatorLaunchParameters launchParameters,
-                                                                File appDir, String bundleId) {
+    /**
+     * Creates customizable iOS simulator launcher
+     */
+    public static CustomizableLauncher createLauncher(Logger log, Listener listener,
+                                                      IOSSimulatorLaunchParameters launchParameters,
+                                                      File appDir, String bundleId) {
         return new Builder(log, listener, launchParameters, appDir, bundleId);
     }
 
-    @Override
-    protected int performLaunch() throws IOException {
-        DeviceType deviceType = launchParameters.getDeviceType();
-        String watchAppName = launchParameters.getPairedWatchAppName();
-        File wd = launchParameters.getWorkingDirectory();
-        ArrayList<String> arguments = new ArrayList<>(launchParameters.getArguments());
-        Map<String, String> env = null;
-        if (launchParameters.getEnvironment() != null) {
-            env = new HashMap<>();
-            for (Map.Entry<String, String> entry : launchParameters.getEnvironment().entrySet()) {
-                env.put("SIMCTL_CHILD_" + entry.getKey(), entry.getValue());
+    /// thread around Executor that launches simctl
+    private static class LauncherThread extends Launchers.LauncherThread<IOSSimulatorLaunchParameters> {
+        private final File appDir;
+        private final String bundleId;
+
+        private LauncherThread(Builder builder, File appDir, String bundleId) {
+            super(builder);
+
+            this.appDir = appDir;
+            this.bundleId = bundleId;
+        }
+
+        @Override
+        protected int performLaunch() throws IOException {
+            DeviceType deviceType = launchParameters.getDeviceType();
+            String watchAppName = launchParameters.getPairedWatchAppName();
+            File wd = launchParameters.getWorkingDirectory();
+            ArrayList<String> arguments = new ArrayList<>(launchParameters.getArguments());
+            Map<String, String> env = null;
+            if (launchParameters.getEnvironment() != null) {
+                env = new HashMap<>();
+                for (Map.Entry<String, String> entry : launchParameters.getEnvironment().entrySet()) {
+                    env.put("SIMCTL_CHILD_" + entry.getKey(), entry.getValue());
+                }
             }
-        }
 
-        Executor executor;
-        DeviceType freshState = deviceType.refresh();
-        if (freshState != null && "shutdown".equals(freshState.getState().toLowerCase())) {
-            log.info("Booting simulator %s", deviceType.getUdid());
-            executor = new Executor(log, "xcrun");
-            executor.args("simctl", "boot", deviceType.getUdid());
-            executor.exec();
-        }
-
-        // bringing simulator to front (and showing it if it was just booted)
-        log.info("Showing simulator %s", deviceType.getUdid());
-        executor = new Executor(log, "open");
-        executor.args("-a", "Simulator", "--args", "-CurrentDeviceUDID", deviceType.getUdid());
-        executor.exec();
-
-        log.info("Deploying app %s to simulator %s", appDir.getAbsolutePath(),
-                deviceType.getUdid());
-        executor = new Executor(log, "xcrun");
-        executor.args("simctl", "install", deviceType.getUdid(), appDir.getAbsolutePath());
-        executor.exec();
-
-        // launch and deploy to paired watch simulator
-        if (watchAppName != null && freshState != null && freshState.getPair() != null) {
-            DeviceType watchDeviceType = freshState.getPair();
-            if ("shutdown".equals(watchDeviceType.getState().toLowerCase())) {
-                log.info("Booting watch simulator %s", watchDeviceType.getUdid());
+            Executor executor;
+            DeviceType freshState = deviceType.refresh();
+            if (freshState != null && "shutdown".equals(freshState.getState().toLowerCase())) {
+                log.info("Booting simulator %s", deviceType.getUdid());
                 executor = new Executor(log, "xcrun");
-                executor.args("simctl", "boot", watchDeviceType.getUdid());
+                executor.args("simctl", "boot", deviceType.getUdid());
                 executor.exec();
             }
 
             // bringing simulator to front (and showing it if it was just booted)
-            log.info("Showing watch simulator %s", watchDeviceType.getUdid());
+            log.info("Showing simulator %s", deviceType.getUdid());
             executor = new Executor(log, "open");
-            executor.args("-a", "Simulator", "--args", "-CurrentDeviceUDID", watchDeviceType.getUdid());
+            executor.args("-a", "Simulator", "--args", "-CurrentDeviceUDID", deviceType.getUdid());
             executor.exec();
 
-            File watchAppDir = new File(appDir, "Watch/" + watchAppName);
-            log.info("Deploying app %s to watch simulator %s", watchAppDir.getAbsolutePath(),
-                    watchDeviceType.getUdid());
+            log.info("Deploying app %s to simulator %s", appDir.getAbsolutePath(),
+                    deviceType.getUdid());
             executor = new Executor(log, "xcrun");
-            executor.args("simctl", "install", watchDeviceType.getUdid(), watchAppDir.getAbsolutePath());
+            executor.args("simctl", "install", deviceType.getUdid(), appDir.getAbsolutePath());
             executor.exec();
+
+            // launch and deploy to paired watch simulator
+            if (watchAppName != null && freshState != null && freshState.getPair() != null) {
+                DeviceType watchDeviceType = freshState.getPair();
+                if ("shutdown".equals(watchDeviceType.getState().toLowerCase())) {
+                    log.info("Booting watch simulator %s", watchDeviceType.getUdid());
+                    executor = new Executor(log, "xcrun");
+                    executor.args("simctl", "boot", watchDeviceType.getUdid());
+                    executor.exec();
+                }
+
+                // bringing simulator to front (and showing it if it was just booted)
+                log.info("Showing watch simulator %s", watchDeviceType.getUdid());
+                executor = new Executor(log, "open");
+                executor.args("-a", "Simulator", "--args", "-CurrentDeviceUDID", watchDeviceType.getUdid());
+                executor.exec();
+
+                File watchAppDir = new File(appDir, "Watch/" + watchAppName);
+                log.info("Deploying app %s to watch simulator %s", watchAppDir.getAbsolutePath(),
+                        watchDeviceType.getUdid());
+                executor = new Executor(log, "xcrun");
+                executor.args("simctl", "install", watchDeviceType.getUdid(), watchAppDir.getAbsolutePath());
+                executor.exec();
+            }
+
+            log.info("Launching app %s on simulator %s", appDir.getAbsolutePath(),
+                    deviceType.getUdid());
+            executor = new Executor(log, "xcrun");
+            List<Object> args = new ArrayList<>();
+            args.add("simctl");
+            args.add("launch");
+            args.add("--console");
+            args.add(deviceType.getUdid());
+            args.add(bundleId);
+            args.addAll(arguments);
+            executor.args(args);
+
+            if (env != null) {
+                executor.env(env);
+            }
+
+            executor.wd(wd).out(out).err(err).closeOutputStreams(true).inheritEnv(false);
+            executor.exec();
+            return 0;
         }
-
-        log.info("Launching app %s on simulator %s", appDir.getAbsolutePath(),
-                deviceType.getUdid());
-        executor = new Executor(log, "xcrun");
-        List<Object> args = new ArrayList<>();
-        args.add("simctl");
-        args.add("launch");
-        args.add("--console");
-        args.add(deviceType.getUdid());
-        args.add(bundleId);
-        args.addAll(arguments);
-        executor.args(args);
-
-        if (env != null) {
-            executor.env(env);
-        }
-
-        executor.wd(wd).out(out).err(err).closeOutputStreams(true).inheritEnv(false);
-        executor.exec();
-        return 0;
     }
 
-    public static class Builder extends AbstractLauncherProcess.Builder<IOSSimulatorLaunchParameters> {
+    public static class Builder extends Launchers.Builder<IOSSimulatorLaunchParameters> {
         private final File appDir;
         private final String bundleId;
 
@@ -148,12 +154,12 @@ public class SimLauncherProcess extends AbstractLauncherProcess<IOSSimulatorLaun
         }
 
         @Override
-        protected AbstractLauncherProcess.Builder<IOSSimulatorLaunchParameters> duplicate() {
+        protected Builder duplicate() {
             return new Builder(log, listener, launchParameters, appDir, bundleId);
         }
 
         @Override
-        protected AbstractLauncherProcess<IOSSimulatorLaunchParameters> createAndSetupThread(boolean async) throws IOException {
+        protected LauncherThread createAndSetupThread(boolean async) throws IOException {
             // apply default streams if not configured
             if (async) {
                 if (out == null) {
@@ -174,7 +180,7 @@ public class SimLauncherProcess extends AbstractLauncherProcess<IOSSimulatorLaun
                 // input stream is not used
                 in = new ImmutablePair<>(null, null);
             }
-            return new SimLauncherProcess(this, appDir, bundleId);
+            return new LauncherThread(this, appDir, bundleId);
         }
 
         @Override
