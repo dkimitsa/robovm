@@ -82,10 +82,7 @@ import org.robovm.llvm.PassManagerBuilder;
 import org.robovm.llvm.Symbol;
 import org.robovm.llvm.Target;
 import org.robovm.llvm.TargetMachine;
-import org.robovm.llvm.binding.Attribute;
-import org.robovm.llvm.binding.CodeGenFileType;
-import org.robovm.llvm.binding.CodeGenOptLevel;
-import org.robovm.llvm.binding.RelocMode;
+import org.robovm.llvm.binding.*;
 import soot.BooleanType;
 import soot.ByteType;
 import soot.CharType;
@@ -398,6 +395,9 @@ public class ClassCompiler {
                     module.writeBitcode(bcFile);
                 }
 
+                // embed bitcode
+                emitBitcode(config, context, module);
+
                 String triple = config.getTriple();
                 Target target = Target.lookupTarget(triple);
                 try (TargetMachine targetMachine = target.createTargetMachine(triple,
@@ -503,6 +503,8 @@ public class ClassCompiler {
             FileUtils.writeByteArrayToFile(llFile, data);
         }
         try (Module module = Module.parseIR(context, data, dataName)) {
+            emitBitcode(config, context, module);
+
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
             targetMachine.emit(module, bytes, CodeGenFileType.ObjectFile);
             new HfsCompressor().compress(oFile, bytes.toByteArray(), config);
@@ -601,10 +603,6 @@ public class ClassCompiler {
                 }
             }
         }
-
-        // emit bitcode section for line number object file
-        if (linesMb != null)
-            emitBitcodeSection(config, linesMb);
 
         return linesMb;
     }
@@ -988,9 +986,6 @@ public class ClassCompiler {
             compilerPlugin.afterClass(config, clazz, mb);
         }
 
-        // emit bitcode section for class
-        emitBitcodeSection(config, mb);
-
         OutputStreamWriter writer = new OutputStreamWriter(out, StandardCharsets.UTF_8);
         mb.build().write(writer);
         writer.flush();
@@ -1031,14 +1026,24 @@ public class ClassCompiler {
         clazz.saveClazzInfo();
     }
 
-    /**
-     * adds `__LLVM,__asm` section to module builder to mark it as object without bitcode build from assembly.
-     */
-    static void emitBitcodeSection(Config config, ModuleBuilder mb) {
+    static void emitBitcode(Config config, Context context, Module targetModule) {
         // for release build add bitcode section
-        if (mb != null && config.shouldEmitBitcode()) {
+        if (targetModule != null && config.shouldEmitBitcode()) {
+            ModuleBuilder bitcodeMb = new ModuleBuilder();
+
             // can't just add section, adding zero constants to create one
-            mb.addGlobal(new Global("robovm.bitcode", Linkage.appending, new IntegerConstant(0), true, "__LLVM,__asm"));
+            MemoryBufferRef bitcodeBuff = targetModule.writeBitcodeToMemoryBuffer();
+            try {
+                byte[] bitcodeBytes = bitcodeBuff.getContent();
+                bitcodeMb.addGlobal(new Global("llvm.embedded.module", Linkage._private,
+                        new ByteArrayConstant(bitcodeBytes), true, "__LLVM,__bitcode"));
+                byte[] data = bitcodeMb.build().toString().getBytes(StandardCharsets.UTF_8);
+                try (Module module = Module.parseIR(context, data, null)) {
+                    targetModule.link(module);
+                }
+            } finally {
+                LLVM.DisposeMemoryBuffer(bitcodeBuff);
+            }
         }
     }
 

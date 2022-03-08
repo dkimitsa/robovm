@@ -9,36 +9,50 @@
 package org.robovm.llvm.binding;
 
 public class MemoryBufferRef {
-  private transient long swigCPtr;
+    private transient long swigCPtr;
 
-  protected MemoryBufferRef(long cPtr, @SuppressWarnings("unused") boolean futureUse) {
-    swigCPtr = cPtr;
-  }
-
-  protected MemoryBufferRef() {
-    swigCPtr = 0;
-  }
-
-  protected static long getCPtr(MemoryBufferRef obj) {
-    return (obj == null) ? 0 : obj.swigCPtr;
-  }
-
-  public int hashCode() {
-    return 31 + (int) (swigCPtr ^ (swigCPtr >>> 32));
-  }
-
-  public boolean equals(Object obj) {
-    if (this == obj) {
-        return true;
+    protected MemoryBufferRef(long cPtr, @SuppressWarnings("unused") boolean futureUse) {
+        swigCPtr = cPtr;
     }
-    if (obj == null) {
-        return false;
+
+    protected MemoryBufferRef() {
+        swigCPtr = 0;
     }
-    if (getClass() != obj.getClass()) {
-        return false;
+
+    protected static long getCPtr(MemoryBufferRef obj) {
+        return (obj == null) ? 0 : obj.swigCPtr;
     }
-    MemoryBufferRef other = (MemoryBufferRef) obj;
-    return swigCPtr == other.swigCPtr;
-  }
+
+    public int hashCode() {
+        return 31 + (int) (swigCPtr ^ (swigCPtr >>> 32));
+    }
+
+    public int size() {
+        return (int)LLVM.GetBufferSize(this);
+    }
+
+    public byte[] getContent() {
+        return getContent(0, size());
+    }
+
+    public byte[] getContent(int start, int count) {
+        byte[] res = new byte[count];
+        LLVM.GetBufferBytes(this, start, res);
+        return res;
+    }
+
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        MemoryBufferRef other = (MemoryBufferRef) obj;
+        return swigCPtr == other.swigCPtr;
+    }
 }
 

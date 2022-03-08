@@ -158,15 +158,16 @@
 
 /* Support for throwing Java exceptions */
 typedef enum {
-  SWIG_JavaOutOfMemoryError = 1, 
-  SWIG_JavaIOException, 
-  SWIG_JavaRuntimeException, 
+  SWIG_JavaOutOfMemoryError = 1,
+  SWIG_JavaIOException,
+  SWIG_JavaRuntimeException,
   SWIG_JavaIndexOutOfBoundsException,
   SWIG_JavaArithmeticException,
   SWIG_JavaIllegalArgumentException,
   SWIG_JavaNullPointerException,
   SWIG_JavaDirectorPureVirtual,
-  SWIG_JavaUnknownError
+  SWIG_JavaUnknownError,
+  SWIG_JavaIllegalStateException,
 } SWIG_JavaExceptionCodes;
 
 typedef struct {
@@ -187,6 +188,7 @@ static void SWIGUNUSED SWIG_JavaThrowException(JNIEnv *jenv, SWIG_JavaExceptionC
     { SWIG_JavaNullPointerException, "java/lang/NullPointerException" },
     { SWIG_JavaDirectorPureVirtual, "java/lang/RuntimeException" },
     { SWIG_JavaUnknownError,  "java/lang/UnknownError" },
+    { SWIG_JavaIllegalStateException, "java/lang/IllegalStateException" },
     { (SWIG_JavaExceptionCodes)0,  "java/lang/UnknownError" }
   };
   const SWIG_JavaExceptions_t *except_ptr = java_exceptions;
@@ -9484,20 +9486,6 @@ SWIGEXPORT jlong JNICALL Java_org_robovm_llvm_binding_LLVMJNI_CreateMemoryBuffer
 }
 
 
-SWIGEXPORT jstring JNICALL Java_org_robovm_llvm_binding_LLVMJNI_GetBufferStart(JNIEnv *jenv, jclass jcls, jlong jarg1) {
-  jstring jresult = 0 ;
-  LLVMMemoryBufferRef arg1 = (LLVMMemoryBufferRef) 0 ;
-  char *result = 0 ;
-  
-  (void)jenv;
-  (void)jcls;
-  arg1 = *(LLVMMemoryBufferRef *)&jarg1; 
-  result = (char *)LLVMGetBufferStart(arg1);
-  if (result) jresult = (*jenv)->NewStringUTF(jenv, (const char *)result);
-  return jresult;
-}
-
-
 SWIGEXPORT jlong JNICALL Java_org_robovm_llvm_binding_LLVMJNI_GetBufferSize(JNIEnv *jenv, jclass jcls, jlong jarg1) {
   jlong jresult = 0 ;
   LLVMMemoryBufferRef arg1 = (LLVMMemoryBufferRef) 0 ;
@@ -12648,6 +12636,32 @@ SWIGEXPORT void JNICALL Java_org_robovm_llvm_binding_LLVMJNI_DumpDwarfDebugData(
   LLVMDumpDwarfDebugData(arg1,arg2);
   {
     FreeOutputStreamWrapper(arg2);
+  }
+}
+
+
+SWIGEXPORT void JNICALL Java_org_robovm_llvm_binding_LLVMJNI_GetBufferBytes(JNIEnv *jenv, jclass jcls, jlong jarg1, jint jarg2, jbyteArray jarg3) {
+  LLVMMemoryBufferRef arg1 = (LLVMMemoryBufferRef) 0 ;
+  int arg2 ;
+  char *arg3 = (char *) 0 ;
+  size_t arg4 ;
+  
+  (void)jenv;
+  (void)jcls;
+  arg1 = *(LLVMMemoryBufferRef *)&jarg1; 
+  arg2 = (int)jarg2; 
+  {
+    if (!jarg3) {
+      SWIG_JavaThrowException(jenv, SWIG_JavaNullPointerException, NULL);
+      return ;
+    }
+    arg3 = (*jenv)->GetByteArrayElements(jenv, jarg3, NULL);
+    if (!arg3) return ;
+    arg4 = (*jenv)->GetArrayLength(jenv, jarg3);
+  }
+  LLVMGetBufferBytes(arg1,arg2,arg3,arg4);
+  {
+    (*jenv)->ReleaseByteArrayElements(jenv, jarg3, arg3, 0); 
   }
 }
 

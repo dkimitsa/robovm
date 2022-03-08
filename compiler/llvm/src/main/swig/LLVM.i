@@ -252,6 +252,9 @@ typedef jlong uint64_t;
 
 %ignore LLVMParseCommandLineOptions;
 
+// returns pointer that is not usefull, replaced with wrapper LLVMGetBufferBytes
+%ignore LLVMGetBufferStart;
+
 // Prevent arguments named ContextRef to interfere with the type named ContextRef
 #define ContextRef contextRef
 

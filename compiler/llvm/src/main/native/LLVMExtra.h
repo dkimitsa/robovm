@@ -101,6 +101,8 @@ size_t LLVMCopySectionContents(LLVMSectionIteratorRef SI, char* Dest, size_t Des
 // dumps DWARF debug information into output stream
 void LLVMDumpDwarfDebugData(LLVMObjectFileRef o, void *OutputStream);
 
+void LLVMGetBufferBytes(LLVMMemoryBufferRef MemBuf, int Offs, char *Dest, size_t DestSize);
+
 #ifdef __cplusplus
 }
 #endif

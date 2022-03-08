@@ -508,15 +508,15 @@ public class Linker {
         linkerO.getParentFile().mkdirs();
 
         try (Context context = new Context()) {
-            // emit bitcode section for linker?.o
-            ClassCompiler.emitBitcodeSection(config, mb);
-
             String ir = mb.build().toString();
             if (config.isDumpIntermediates()) {
                 File linkerLl = new File(config.getTmpDir(), "linker" + num + ".ll");
                 FileUtils.writeStringToFile(linkerLl, ir, "utf-8");
             }
             try (Module module = Module.parseIR(context, ir, "linker" + num + ".ll")) {
+                // emit bitcode section for linker?.o
+                ClassCompiler.emitBitcode(config, context, module);
+
                 try (PassManager passManager = new PassManager()) {
                     passManager.addAlwaysInlinerPass();
                     passManager.addPromoteMemoryToRegisterPass();

@@ -2357,10 +2357,6 @@ public class LLVM implements LLVMConstants {
     return (cPtr == 0) ? null : new MemoryBufferRef(cPtr, false);
   }
 
-  public static String GetBufferStart(MemoryBufferRef MemBuf) {
-    return LLVMJNI.GetBufferStart(MemoryBufferRef.getCPtr(MemBuf));
-  }
-
   public static long GetBufferSize(MemoryBufferRef MemBuf) {
     return LLVMJNI.GetBufferSize(MemoryBufferRef.getCPtr(MemBuf));
   }
@@ -3323,6 +3319,10 @@ public class LLVM implements LLVMConstants {
 
   public static void DumpDwarfDebugData(ObjectFileRef o, java.io.OutputStream OutputStream) {
     LLVMJNI.DumpDwarfDebugData(ObjectFileRef.getCPtr(o), OutputStream);
+  }
+
+  public static void GetBufferBytes(MemoryBufferRef MemBuf, int Offs, byte[] Dest) {
+    LLVMJNI.GetBufferBytes(MemoryBufferRef.getCPtr(MemBuf), Offs, Dest);
   }
 
   public static ModuleRef ClangCompileFile(ContextRef Context, String Data, String FileName, String Triple, StringOut ErrorMessage) {

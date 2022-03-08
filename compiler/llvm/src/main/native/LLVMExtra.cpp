@@ -403,6 +403,10 @@ size_t LLVMCopySectionContents(LLVMSectionIteratorRef SI, char* Dest, size_t Des
   return Size;
 }
 
+void LLVMGetBufferBytes(LLVMMemoryBufferRef MemBuf, int Offs, char *Dest, size_t DestSize) {
+    const char* Start = LLVMGetBufferStart(MemBuf);
+    memcpy(Dest, Start + Offs, DestSize);
+}
 
 /**
  * recursive routine that handles everything inside routine unit

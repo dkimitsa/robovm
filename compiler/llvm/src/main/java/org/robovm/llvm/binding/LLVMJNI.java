@@ -561,7 +561,6 @@ public class LLVMJNI {
   public final static native boolean CreateMemoryBufferWithSTDIN(long jarg1, MemoryBufferRefOut jarg1_, long jarg2, StringOut jarg2_);
   public final static native long CreateMemoryBufferWithMemoryRange(byte[] jarg1, String jarg3, boolean jarg4);
   public final static native long CreateMemoryBufferWithMemoryRangeCopy(byte[] jarg1, String jarg3);
-  public final static native String GetBufferStart(long jarg1);
   public final static native long GetBufferSize(long jarg1);
   public final static native void DisposeMemoryBuffer(long jarg1);
   public final static native long GetGlobalPassRegistry();
@@ -797,6 +796,7 @@ public class LLVMJNI {
   public final static native void GetLineInfoForAddressRange(long jarg1, long jarg2, long jarg3, long jarg4, IntOut jarg4_, long jarg5, LongArrayOut jarg5_);
   public final static native long CopySectionContents(long jarg1, byte[] jarg2);
   public final static native void DumpDwarfDebugData(long jarg1, java.io.OutputStream jarg2);
+  public final static native void GetBufferBytes(long jarg1, int jarg2, byte[] jarg3);
   public final static native long ClangCompileFile(long jarg1, String jarg2, String jarg3, String jarg4, long jarg5, StringOut jarg5_);
 
   static {

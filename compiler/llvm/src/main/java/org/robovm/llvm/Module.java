@@ -81,7 +81,15 @@ public class Module implements AutoCloseable {
             throw new LlvmException("Write failed");
         }
     }
-    
+
+    public MemoryBufferRef writeBitcodeToMemoryBuffer() {
+        MemoryBufferRef res = LLVM.WriteBitcodeToMemoryBuffer(getRef());
+        if (res == null) {
+            throw new LlvmException("Write failed");
+        }
+        return res;
+    }
+
     public void link(Module other) {
         StringOut errorMessage = new StringOut();
         if (LLVM.LinkModules(getRef(), other.getRef(), 0, errorMessage)) {
